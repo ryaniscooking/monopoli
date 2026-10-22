@@ -1,0 +1,617 @@
+{
+  "schemaVersion": 1,
+  "id": "myanmar",
+  "name": "Myanmar",
+  "currency": {
+    "code": "MMK",
+    "symbol": "Ks",
+    "symbolPosition": "suffix",
+    "multiplier": 1000,
+    "compactFrom": 10000,
+    "locale": "en-US"
+  },
+  "theme": {
+    "primary": "#7A1F2B",
+    "secondary": "#2E7D4F",
+    "accent": "#E0A526",
+    "boardBg": "#F6EBD0",
+    "tileBg": "#FFFBF0",
+    "text": "#2A1A14",
+    "groupColors": {
+      "brown": "#8B5A3C",
+      "lightblue": "#8ED1F0",
+      "pink": "#D86FA6",
+      "orange": "#F28C28",
+      "red": "#D62F2F",
+      "yellow": "#F2D338",
+      "green": "#2E9E5B",
+      "darkblue": "#1F3FA6"
+    },
+    "playerColors": ["#E63946", "#1D7FE0", "#2EAD5B", "#F4A300", "#8E44AD", "#14B8A6"]
+  },
+  "tiles": [
+    {
+      "id": "go",
+      "type": "go",
+      "name": "GO"
+    },
+    {
+      "id": "p01",
+      "type": "property",
+      "name": "Hakha",
+      "group": "brown",
+      "slot": 1
+    },
+    {
+      "id": "chest1",
+      "type": "card",
+      "deck": "chest"
+    },
+    {
+      "id": "p02",
+      "type": "property",
+      "name": "Loikaw",
+      "group": "brown",
+      "slot": 2
+    },
+    {
+      "id": "tax_income",
+      "type": "tax",
+      "name": "Income Tax",
+      "amount": 200
+    },
+    {
+      "id": "t1",
+      "type": "transport",
+      "name": "Yangon Circular Railway",
+      "icon": "🚆"
+    },
+    {
+      "id": "p03",
+      "type": "property",
+      "name": "Hpa-An",
+      "group": "lightblue",
+      "slot": 3
+    },
+    {
+      "id": "chance1",
+      "type": "card",
+      "deck": "chance"
+    },
+    {
+      "id": "p04",
+      "type": "property",
+      "name": "Myitkyina",
+      "group": "lightblue",
+      "slot": 4
+    },
+    {
+      "id": "p05",
+      "type": "property",
+      "name": "Sittwe",
+      "group": "lightblue",
+      "slot": 5
+    },
+    {
+      "id": "jail",
+      "type": "jail",
+      "name": "Jail / Just Visiting"
+    },
+    {
+      "id": "p06",
+      "type": "property",
+      "name": "Dawei",
+      "group": "pink",
+      "slot": 6
+    },
+    {
+      "id": "u1",
+      "type": "utility",
+      "name": "Electricity",
+      "icon": "electricity"
+    },
+    {
+      "id": "p07",
+      "type": "property",
+      "name": "Myeik",
+      "group": "pink",
+      "slot": 7
+    },
+    {
+      "id": "p08",
+      "type": "property",
+      "name": "Magway",
+      "group": "pink",
+      "slot": 8
+    },
+    {
+      "id": "t2",
+      "type": "transport",
+      "name": "Myanmar Railways Express",
+      "icon": "🚄"
+    },
+    {
+      "id": "p09",
+      "type": "property",
+      "name": "Monywa",
+      "group": "orange",
+      "slot": 9
+    },
+    {
+      "id": "chest2",
+      "type": "card",
+      "deck": "chest"
+    },
+    {
+      "id": "p10",
+      "type": "property",
+      "name": "Meiktila",
+      "group": "orange",
+      "slot": 10
+    },
+    {
+      "id": "p11",
+      "type": "property",
+      "name": "Pyin Oo Lwin",
+      "group": "orange",
+      "slot": 11
+    },
+    {
+      "id": "parking",
+      "type": "free_parking",
+      "name": "Teahouse"
+    },
+    {
+      "id": "p12",
+      "type": "property",
+      "name": "Pyay",
+      "group": "red",
+      "slot": 12
+    },
+    {
+      "id": "chance2",
+      "type": "card",
+      "deck": "chance"
+    },
+    {
+      "id": "p13",
+      "type": "property",
+      "name": "Bago",
+      "group": "red",
+      "slot": 13
+    },
+    {
+      "id": "p14",
+      "type": "property",
+      "name": "Pathein",
+      "group": "red",
+      "slot": 14
+    },
+    {
+      "id": "t3",
+      "type": "transport",
+      "name": "Irrawaddy River Ferry",
+      "icon": "⛴️"
+    },
+    {
+      "id": "p15",
+      "type": "property",
+      "name": "Ngapali",
+      "group": "yellow",
+      "slot": 15
+    },
+    {
+      "id": "p16",
+      "type": "property",
+      "name": "Inle Lake",
+      "group": "yellow",
+      "slot": 16
+    },
+    {
+      "id": "u2",
+      "type": "utility",
+      "name": "Water",
+      "icon": "water"
+    },
+    {
+      "id": "p17",
+      "type": "property",
+      "name": "Bagan",
+      "group": "yellow",
+      "slot": 17
+    },
+    {
+      "id": "gotojail",
+      "type": "go_to_jail",
+      "name": "Go To Jail"
+    },
+    {
+      "id": "p18",
+      "type": "property",
+      "name": "Taunggyi",
+      "group": "green",
+      "slot": 18
+    },
+    {
+      "id": "p19",
+      "type": "property",
+      "name": "Mawlamyine",
+      "group": "green",
+      "slot": 19
+    },
+    {
+      "id": "chest3",
+      "type": "card",
+      "deck": "chest"
+    },
+    {
+      "id": "p20",
+      "type": "property",
+      "name": "Naypyidaw",
+      "group": "green",
+      "slot": 20
+    },
+    {
+      "id": "t4",
+      "type": "transport",
+      "name": "Yangon International Airport",
+      "icon": "✈️"
+    },
+    {
+      "id": "chance3",
+      "type": "card",
+      "deck": "chance"
+    },
+    {
+      "id": "p21",
+      "type": "property",
+      "name": "Mandalay",
+      "group": "darkblue",
+      "slot": 21
+    },
+    {
+      "id": "tax_luxury",
+      "type": "tax",
+      "name": "Commercial Tax",
+      "amount": 100
+    },
+    {
+      "id": "p22",
+      "type": "property",
+      "name": "Yangon",
+      "group": "darkblue",
+      "slot": 22
+    }
+  ],
+  "decks": {
+    "chance": {
+      "name": "Chance",
+      "cards": [
+        {
+          "id": "chance01",
+          "text": "Thingyan water festival begins! Advance to GO and collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "go",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance02",
+          "text": "Take a road trip to Pathein. If you pass GO, collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "p14",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance03",
+          "text": "Visit the southern coast: advance to Dawei. If you pass GO, collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "p06",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance04",
+          "text": "The power grid is upgraded. Advance to the nearest utility. If unowned you may buy it; if owned, roll the dice and pay the owner 10 times the amount thrown.",
+          "effect": {
+            "kind": "advance_nearest",
+            "tileType": "utility",
+            "diceMultiplier": 10
+          }
+        },
+        {
+          "id": "chance05",
+          "text": "Catch the next train! Advance to the nearest transport. If owned, pay the owner double the rent.",
+          "effect": {
+            "kind": "advance_nearest",
+            "tileType": "transport",
+            "rentMultiplier": 2
+          }
+        },
+        {
+          "id": "chance06",
+          "text": "A ferry is about to leave! Advance to the nearest transport. If owned, pay the owner double the rent.",
+          "effect": {
+            "kind": "advance_nearest",
+            "tileType": "transport",
+            "rentMultiplier": 2
+          }
+        },
+        {
+          "id": "chance07",
+          "text": "Your tea-leaf shop earns a dividend. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chance08",
+          "text": "A lucky amulet! Get Out of Jail Free. Keep this card until needed or trade it.",
+          "effect": {
+            "kind": "jail_free"
+          }
+        },
+        {
+          "id": "chance09",
+          "text": "Heavy traffic on the road. Go back 3 spaces.",
+          "effect": {
+            "kind": "move_back",
+            "spaces": 3
+          }
+        },
+        {
+          "id": "chance10",
+          "text": "Go directly to Jail. Do not pass GO. Do not collect {goAmount}.",
+          "effect": {
+            "kind": "go_to_jail"
+          }
+        },
+        {
+          "id": "chance11",
+          "text": "Monsoon rains damage your buildings. Pay {perHouse} per house and {perHotel} per hotel.",
+          "effect": {
+            "kind": "repairs",
+            "perHouse": 25,
+            "perHotel": 100
+          }
+        },
+        {
+          "id": "chance12",
+          "text": "A traffic police fine. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 15
+          }
+        },
+        {
+          "id": "chance13",
+          "text": "Take a ride on the Yangon Circular Railway. If you pass GO, collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "t1",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance14",
+          "text": "Advance to Yangon.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "p22",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance15",
+          "text": "You are elected head of the pagoda trust. Pay each player {amount}.",
+          "effect": {
+            "kind": "pay_each",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chance16",
+          "text": "Your building loan matures. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 150
+          }
+        }
+      ]
+    },
+    "chest": {
+      "name": "Community Chest",
+      "cards": [
+        {
+          "id": "chest01",
+          "text": "Festival of Lights! Advance to GO and collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "go",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chest02",
+          "text": "Bank error in your favor. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 200
+          }
+        },
+        {
+          "id": "chest03",
+          "text": "Doctor's fee. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chest04",
+          "text": "You sell your harvest at the market. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chest05",
+          "text": "A village elder vouches for you. Get Out of Jail Free. Keep this card until needed or trade it.",
+          "effect": {
+            "kind": "jail_free"
+          }
+        },
+        {
+          "id": "chest06",
+          "text": "Go directly to Jail. Do not pass GO. Do not collect {goAmount}.",
+          "effect": {
+            "kind": "go_to_jail"
+          }
+        },
+        {
+          "id": "chest07",
+          "text": "Your village savings circle pays out. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 100
+          }
+        },
+        {
+          "id": "chest08",
+          "text": "Income tax refund. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 20
+          }
+        },
+        {
+          "id": "chest09",
+          "text": "It is your birthday! Collect {amount} from each player.",
+          "effect": {
+            "kind": "collect_each",
+            "amount": 10
+          }
+        },
+        {
+          "id": "chest10",
+          "text": "Life insurance matures. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 100
+          }
+        },
+        {
+          "id": "chest11",
+          "text": "Hospital fees. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 100
+          }
+        },
+        {
+          "id": "chest12",
+          "text": "School fees. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chest13",
+          "text": "Consultancy fee. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 25
+          }
+        },
+        {
+          "id": "chest14",
+          "text": "Street repairs: pay {perHouse} per house and {perHotel} per hotel.",
+          "effect": {
+            "kind": "repairs",
+            "perHouse": 40,
+            "perHotel": 115
+          }
+        },
+        {
+          "id": "chest15",
+          "text": "You win second place in a chinlone tournament. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 10
+          }
+        },
+        {
+          "id": "chest16",
+          "text": "You inherit a family shop. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 100
+          }
+        }
+      ]
+    }
+  },
+  "tokens": [
+    {
+      "id": "chinthe",
+      "name": "Chinthe",
+      "icon": "🦁"
+    },
+    {
+      "id": "pagoda",
+      "name": "Pagoda",
+      "icon": "🛕"
+    },
+    {
+      "id": "longyi",
+      "name": "Longyi",
+      "icon": "👘"
+    },
+    {
+      "id": "bullock_cart",
+      "name": "Bullock cart",
+      "icon": "🐂"
+    },
+    {
+      "id": "trishaw",
+      "name": "Trishaw",
+      "icon": "🛺"
+    },
+    {
+      "id": "hintha",
+      "name": "Hintha bird",
+      "icon": "🦢"
+    },
+    {
+      "id": "mohinga",
+      "name": "Mohinga bowl",
+      "icon": "🍜"
+    },
+    {
+      "id": "chinlone",
+      "name": "Chinlone ball",
+      "icon": "🏐"
+    }
+  ],
+  "botNames": [
+    "Aung Aung",
+    "Hla Hla",
+    "Kyaw Kyaw",
+    "Thida",
+    "Su Su",
+    "Min Min",
+    "Nandar",
+    "Zaw Zaw",
+    "Htet Htet",
+    "Phyu Phyu",
+    "Ei Ei",
+    "Tun Tun"
+  ]
+}

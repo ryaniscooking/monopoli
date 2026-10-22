@@ -1,0 +1,617 @@
+{
+  "schemaVersion": 1,
+  "id": "dubai",
+  "name": "Dubai",
+  "currency": {
+    "code": "AED",
+    "symbol": "AED",
+    "symbolPosition": "prefix",
+    "multiplier": 1,
+    "compactFrom": 10000,
+    "locale": "en-US"
+  },
+  "theme": {
+    "primary": "#0B2A4A",
+    "secondary": "#18A3A5",
+    "accent": "#C9A227",
+    "boardBg": "#F2E3C6",
+    "tileBg": "#FFF9EC",
+    "text": "#12263A",
+    "groupColors": {
+      "brown": "#8B5A3C",
+      "lightblue": "#8ED1F0",
+      "pink": "#D86FA6",
+      "orange": "#F28C28",
+      "red": "#D62F2F",
+      "yellow": "#F2D338",
+      "green": "#2E9E5B",
+      "darkblue": "#1F3FA6"
+    },
+    "playerColors": ["#E63946", "#1D7FE0", "#2EAD5B", "#F4A300", "#8E44AD", "#14B8A6"]
+  },
+  "tiles": [
+    {
+      "id": "go",
+      "type": "go",
+      "name": "GO"
+    },
+    {
+      "id": "p01",
+      "type": "property",
+      "name": "Deira",
+      "group": "brown",
+      "slot": 1
+    },
+    {
+      "id": "chest1",
+      "type": "card",
+      "deck": "chest"
+    },
+    {
+      "id": "p02",
+      "type": "property",
+      "name": "Al Karama",
+      "group": "brown",
+      "slot": 2
+    },
+    {
+      "id": "tax_income",
+      "type": "tax",
+      "name": "Municipality Fee",
+      "amount": 200
+    },
+    {
+      "id": "t1",
+      "type": "transport",
+      "name": "Dubai Metro",
+      "icon": "🚇"
+    },
+    {
+      "id": "p03",
+      "type": "property",
+      "name": "International City",
+      "group": "lightblue",
+      "slot": 3
+    },
+    {
+      "id": "chance1",
+      "type": "card",
+      "deck": "chance"
+    },
+    {
+      "id": "p04",
+      "type": "property",
+      "name": "Dubai Silicon Oasis",
+      "group": "lightblue",
+      "slot": 4
+    },
+    {
+      "id": "p05",
+      "type": "property",
+      "name": "Al Barsha",
+      "group": "lightblue",
+      "slot": 5
+    },
+    {
+      "id": "jail",
+      "type": "jail",
+      "name": "Jail / Just Visiting"
+    },
+    {
+      "id": "p06",
+      "type": "property",
+      "name": "Jumeirah Village Circle",
+      "group": "pink",
+      "slot": 6
+    },
+    {
+      "id": "u1",
+      "type": "utility",
+      "name": "Electricity",
+      "icon": "electricity"
+    },
+    {
+      "id": "p07",
+      "type": "property",
+      "name": "Dubai Sports City",
+      "group": "pink",
+      "slot": 7
+    },
+    {
+      "id": "p08",
+      "type": "property",
+      "name": "Dubai Festival City",
+      "group": "pink",
+      "slot": 8
+    },
+    {
+      "id": "t2",
+      "type": "transport",
+      "name": "Dubai Tram",
+      "icon": "🚊"
+    },
+    {
+      "id": "p09",
+      "type": "property",
+      "name": "Dubai Hills Estate",
+      "group": "orange",
+      "slot": 9
+    },
+    {
+      "id": "chest2",
+      "type": "card",
+      "deck": "chest"
+    },
+    {
+      "id": "p10",
+      "type": "property",
+      "name": "Jumeirah Lake Towers",
+      "group": "orange",
+      "slot": 10
+    },
+    {
+      "id": "p11",
+      "type": "property",
+      "name": "Dubai Creek Harbour",
+      "group": "orange",
+      "slot": 11
+    },
+    {
+      "id": "parking",
+      "type": "free_parking",
+      "name": "Desert Oasis"
+    },
+    {
+      "id": "p12",
+      "type": "property",
+      "name": "Business Bay",
+      "group": "red",
+      "slot": 12
+    },
+    {
+      "id": "chance2",
+      "type": "card",
+      "deck": "chance"
+    },
+    {
+      "id": "p13",
+      "type": "property",
+      "name": "Dubai Marina",
+      "group": "red",
+      "slot": 13
+    },
+    {
+      "id": "p14",
+      "type": "property",
+      "name": "Jumeirah Beach Residence",
+      "group": "red",
+      "slot": 14
+    },
+    {
+      "id": "t3",
+      "type": "transport",
+      "name": "Palm Monorail",
+      "icon": "🚝"
+    },
+    {
+      "id": "p15",
+      "type": "property",
+      "name": "Dubai Frame",
+      "group": "yellow",
+      "slot": 15
+    },
+    {
+      "id": "p16",
+      "type": "property",
+      "name": "Dubai Mall",
+      "group": "yellow",
+      "slot": 16
+    },
+    {
+      "id": "u2",
+      "type": "utility",
+      "name": "Water",
+      "icon": "water"
+    },
+    {
+      "id": "p17",
+      "type": "property",
+      "name": "Museum of the Future",
+      "group": "yellow",
+      "slot": 17
+    },
+    {
+      "id": "gotojail",
+      "type": "go_to_jail",
+      "name": "Go To Jail"
+    },
+    {
+      "id": "p18",
+      "type": "property",
+      "name": "Downtown Dubai",
+      "group": "green",
+      "slot": 18
+    },
+    {
+      "id": "p19",
+      "type": "property",
+      "name": "Bluewaters Island",
+      "group": "green",
+      "slot": 19
+    },
+    {
+      "id": "chest3",
+      "type": "card",
+      "deck": "chest"
+    },
+    {
+      "id": "p20",
+      "type": "property",
+      "name": "Emirates Hills",
+      "group": "green",
+      "slot": 20
+    },
+    {
+      "id": "t4",
+      "type": "transport",
+      "name": "Abra Water Taxi",
+      "icon": "🚤"
+    },
+    {
+      "id": "chance3",
+      "type": "card",
+      "deck": "chance"
+    },
+    {
+      "id": "p21",
+      "type": "property",
+      "name": "Burj Khalifa",
+      "group": "darkblue",
+      "slot": 21
+    },
+    {
+      "id": "tax_luxury",
+      "type": "tax",
+      "name": "Salik Toll",
+      "amount": 100
+    },
+    {
+      "id": "p22",
+      "type": "property",
+      "name": "Palm Jumeirah",
+      "group": "darkblue",
+      "slot": 22
+    }
+  ],
+  "decks": {
+    "chance": {
+      "name": "Chance",
+      "cards": [
+        {
+          "id": "chance01",
+          "text": "Dubai Shopping Festival is here! Advance to GO and collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "go",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance02",
+          "text": "Drive to JBR for the sunset. If you pass GO, collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "p14",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance03",
+          "text": "A new launch in Jumeirah Village Circle catches your eye. Advance there. If you pass GO, collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "p06",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance04",
+          "text": "A utility bill arrives. Advance to the nearest utility. If unowned you may buy it; if owned, roll the dice and pay the owner 10 times the amount thrown.",
+          "effect": {
+            "kind": "advance_nearest",
+            "tileType": "utility",
+            "diceMultiplier": 10
+          }
+        },
+        {
+          "id": "chance05",
+          "text": "Hop on the next ride! Advance to the nearest transport. If owned, pay the owner double the rent.",
+          "effect": {
+            "kind": "advance_nearest",
+            "tileType": "transport",
+            "rentMultiplier": 2
+          }
+        },
+        {
+          "id": "chance06",
+          "text": "The next Metro is arriving! Advance to the nearest transport. If owned, pay the owner double the rent.",
+          "effect": {
+            "kind": "advance_nearest",
+            "tileType": "transport",
+            "rentMultiplier": 2
+          }
+        },
+        {
+          "id": "chance07",
+          "text": "Your investment fund pays a dividend. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chance08",
+          "text": "Your lawyer files an appeal in time! Get Out of Jail Free. Keep this card until needed or trade it.",
+          "effect": {
+            "kind": "jail_free"
+          }
+        },
+        {
+          "id": "chance09",
+          "text": "Stuck in rush-hour traffic on Sheikh Zayed Road. Go back 3 spaces.",
+          "effect": {
+            "kind": "move_back",
+            "spaces": 3
+          }
+        },
+        {
+          "id": "chance10",
+          "text": "Go directly to Jail. Do not pass GO. Do not collect {goAmount}.",
+          "effect": {
+            "kind": "go_to_jail"
+          }
+        },
+        {
+          "id": "chance11",
+          "text": "A sandstorm damages your buildings. Pay {perHouse} per house and {perHotel} per hotel.",
+          "effect": {
+            "kind": "repairs",
+            "perHouse": 25,
+            "perHotel": 100
+          }
+        },
+        {
+          "id": "chance12",
+          "text": "A Salik gate fine. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 15
+          }
+        },
+        {
+          "id": "chance13",
+          "text": "Take a ride on the Dubai Metro. If you pass GO, collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "t1",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance14",
+          "text": "Advance to Palm Jumeirah.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "p22",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chance15",
+          "text": "You are elected chairman of the owners association. Pay each player {amount}.",
+          "effect": {
+            "kind": "pay_each",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chance16",
+          "text": "Your building loan matures. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 150
+          }
+        }
+      ]
+    },
+    "chest": {
+      "name": "Community Chest",
+      "cards": [
+        {
+          "id": "chest01",
+          "text": "UAE National Day celebrations! Advance to GO and collect {goAmount}.",
+          "effect": {
+            "kind": "advance_to",
+            "tile": "go",
+            "collectGoIfPassed": true
+          }
+        },
+        {
+          "id": "chest02",
+          "text": "Bank error in your favor. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 200
+          }
+        },
+        {
+          "id": "chest03",
+          "text": "Doctor's fee. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chest04",
+          "text": "You sell some shares at a profit. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chest05",
+          "text": "A character reference clears your name. Get Out of Jail Free. Keep this card until needed or trade it.",
+          "effect": {
+            "kind": "jail_free"
+          }
+        },
+        {
+          "id": "chest06",
+          "text": "Go directly to Jail. Do not pass GO. Do not collect {goAmount}.",
+          "effect": {
+            "kind": "go_to_jail"
+          }
+        },
+        {
+          "id": "chest07",
+          "text": "Your annual bonus arrives. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 100
+          }
+        },
+        {
+          "id": "chest08",
+          "text": "Income tax refund. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 20
+          }
+        },
+        {
+          "id": "chest09",
+          "text": "It is your birthday! Collect {amount} from each player.",
+          "effect": {
+            "kind": "collect_each",
+            "amount": 10
+          }
+        },
+        {
+          "id": "chest10",
+          "text": "Life insurance matures. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 100
+          }
+        },
+        {
+          "id": "chest11",
+          "text": "Hospital fees. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 100
+          }
+        },
+        {
+          "id": "chest12",
+          "text": "School fees. Pay {amount}.",
+          "effect": {
+            "kind": "pay",
+            "amount": 50
+          }
+        },
+        {
+          "id": "chest13",
+          "text": "Consultancy fee. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 25
+          }
+        },
+        {
+          "id": "chest14",
+          "text": "Street repairs: pay {perHouse} per house and {perHotel} per hotel.",
+          "effect": {
+            "kind": "repairs",
+            "perHouse": 40,
+            "perHotel": 115
+          }
+        },
+        {
+          "id": "chest15",
+          "text": "You win second place in a camel beauty contest. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 10
+          }
+        },
+        {
+          "id": "chest16",
+          "text": "You inherit a share in a family villa. Collect {amount}.",
+          "effect": {
+            "kind": "collect",
+            "amount": 100
+          }
+        }
+      ]
+    }
+  },
+  "tokens": [
+    {
+      "id": "dhow",
+      "name": "Dhow",
+      "icon": "⛵"
+    },
+    {
+      "id": "camel",
+      "name": "Camel",
+      "icon": "🐪"
+    },
+    {
+      "id": "skyscraper",
+      "name": "Skyscraper",
+      "icon": "🏙️"
+    },
+    {
+      "id": "falcon",
+      "name": "Falcon",
+      "icon": "🦅"
+    },
+    {
+      "id": "dallah",
+      "name": "Dallah coffee pot",
+      "icon": "☕"
+    },
+    {
+      "id": "abra",
+      "name": "Abra boat",
+      "icon": "🚤"
+    },
+    {
+      "id": "supercar",
+      "name": "Supercar",
+      "icon": "🏎️"
+    },
+    {
+      "id": "date_palm",
+      "name": "Date palm",
+      "icon": "🌴"
+    }
+  ],
+  "botNames": [
+    "Khalid",
+    "Fatima",
+    "Omar",
+    "Layla",
+    "Yousef",
+    "Mariam",
+    "Hamdan",
+    "Noor",
+    "Saeed",
+    "Aisha",
+    "Rashid",
+    "Sara"
+  ]
+}

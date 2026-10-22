@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.json",
     "test": "pnpm -r test",
     "sim": "tsx scripts/sim.ts",
     "sim:smoke": "tsx scripts/sim.ts --smoke",
@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@monopoli/engine": "workspace:*",
+    "@monopoli/maps": "workspace:*",
     "@types/node": "^26.6.5",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",

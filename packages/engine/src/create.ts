@@ -97,6 +97,7 @@ export function createGame(
     tradeSeq: 1,
     proposalsThisTurn: {},
     auctionQueue: [],
+    declinedOffers: [],
   };
 
   const events: GameEvent[] = [

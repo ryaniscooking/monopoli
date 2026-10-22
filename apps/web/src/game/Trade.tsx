@@ -244,7 +244,7 @@ function OfferCard({ offer, mine }: { offer: TradeOffer; mine: boolean }) {
   return (
     <div
       data-testid={mine ? 'outgoing-offer' : 'incoming-offer'}
-      className="pointer-events-auto rounded-xl bg-white p-2 text-[13px] text-ink shadow-lg"
+      className="rounded-lg border-l-4 border-accent bg-white p-1.5 text-[12px] leading-snug text-ink shadow"
     >
       <div className="mb-1 flex items-center justify-between font-semibold">
         <span>{mine ? tr.offerTo(name(offer.to)) : tr.offerFrom(name(offer.from))}</span>
@@ -292,7 +292,10 @@ function OfferCard({ offer, mine }: { offer: TradeOffer; mine: boolean }) {
   );
 }
 
-/** Incoming offers with Accept / Decline, and my own pending offer (spec 12.6 Trade). */
+/**
+ * Incoming offers with Accept / Decline, and my own pending offer (spec 12.6 Trade).
+ * Shown inside the right rail so it never covers the board.
+ */
 export function TradeBanner() {
   const view = useTable((s) => s.view);
   const me = useTable((s) => s.client?.me);
@@ -300,7 +303,7 @@ export function TradeBanner() {
   const relevant = view.trades.filter((t) => t.to === me || t.from === me);
   if (relevant.length === 0) return null;
   return (
-    <div className="pointer-events-none fixed top-2 left-1/2 z-30 flex w-[min(420px,50vw)] -translate-x-1/2 flex-col gap-1.5">
+    <div data-testid="trade-offers" className="flex shrink-0 flex-col gap-1.5">
       {relevant.map((o) => (
         <OfferCard key={o.id} offer={o} mine={o.from === me} />
       ))}

@@ -5,7 +5,7 @@ import { ActionRail } from '../game/ActionRail';
 import { AuctionPanel } from '../game/AuctionPanel';
 import { ManageSheet } from '../game/ManageSheet';
 import { DebtPanel, GameOver, LogSheet, MenuSheet } from '../game/Panels';
-import { TradeBanner, TradeSheet } from '../game/Trade';
+import { TradeSheet } from '../game/Trade';
 import { PlayerRail } from '../game/PlayerRail';
 import { useTable } from '../game/table';
 import { useUi } from '../store/ui';
@@ -46,7 +46,6 @@ export function Game() {
       <AuctionPanel />
       <ManageSheet />
       <TradeSheet />
-      <TradeBanner />
       <LogSheet />
       <MenuSheet />
       <GameOver />

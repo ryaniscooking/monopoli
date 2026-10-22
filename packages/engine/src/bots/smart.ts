@@ -32,6 +32,9 @@ const HARD_GROUP_PRIORITY: ColorGroup[] = [
   'brown',
 ];
 
+/** Rounds a bot waits before offering again for a tile the other player refused. */
+export const REOFFER_ROUNDS = 5;
+
 const priceOf = (map: ResolvedMap, tile: TileId) => {
   const t = map.byId[tile];
   return t && 'price' in t ? t.price : 0;
@@ -336,6 +339,12 @@ function tradeProposal(
     const target = missing[0] as TileId;
     const owner = s.properties[target]?.owner;
     if (!owner || owner === me) continue;
+    // Don't repeat an offer for this tile that this player refused in the last few rounds.
+    const refused = (s.declinedOffers ?? []).some(
+      (d) =>
+        d.from === me && d.to === owner && d.tile === target && s.round - d.round < REOFFER_ROUNDS,
+    );
+    if (refused) continue;
     const ownerState = s.players.find((p) => p.id === owner);
     if (!ownerState || ownerState.bankrupt) continue;
     if (group.some((id) => (s.properties[id]?.buildings ?? 0) > 0)) continue;

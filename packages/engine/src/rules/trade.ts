@@ -95,13 +95,28 @@ export function removeTrade(
   id: string,
   reason: 'cancelled' | 'expired' | 'invalid' | 'bankrupt',
 ) {
+  const offer = c.s.trades.find((t) => t.id === id);
+  if (offer && reason === 'expired') rememberDecline(c, offer); // ignored = declined
+
   c.s.trades = c.s.trades.filter((t) => t.id !== id);
   c.ev.push({ type: 'trade_cancelled', id, reason });
 }
 
 export function declineTrade(c: Ctx, id: string): void {
+  const offer = c.s.trades.find((t) => t.id === id);
+  if (offer) rememberDecline(c, offer);
   c.s.trades = c.s.trades.filter((t) => t.id !== id);
   c.ev.push({ type: 'trade_declined', id });
+}
+
+const DECLINE_MEMORY = 30;
+
+/** Remember what the proposer asked for, so bots don't keep repeating a refused offer. */
+function rememberDecline(c: Ctx, offer: TradeOffer): void {
+  const records = (c.s.declinedOffers ?? []).concat(
+    offer.get.tiles.map((tile) => ({ from: offer.from, to: offer.to, tile, round: c.s.round })),
+  );
+  c.s.declinedOffers = records.slice(-DECLINE_MEMORY);
 }
 
 /** R-091 / R-092 / R-094: re-validate, then swap exactly the listed assets. */

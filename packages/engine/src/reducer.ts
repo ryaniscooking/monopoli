@@ -172,5 +172,6 @@ export function cloneState(s: GameState): GameState {
     })),
     proposalsThisTurn: { ...s.proposalsThisTurn },
     auctionQueue: [...s.auctionQueue],
+    ...(s.declinedOffers ? { declinedOffers: s.declinedOffers.map((d) => ({ ...d })) } : {}),
   };
 }

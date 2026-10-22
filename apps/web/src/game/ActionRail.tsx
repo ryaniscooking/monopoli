@@ -5,6 +5,7 @@ import { Button } from '../components/ui';
 import { useUi } from '../store/ui';
 import { en } from '../strings/en';
 import { Deed } from './Deed';
+import { TradeBanner } from './Trade';
 import { act, useTable } from './table';
 import { useMyActions } from './useMyActions';
 import { useNow } from '../components/useNow';
@@ -89,7 +90,8 @@ export function ActionRail() {
     <div className="flex h-full flex-col gap-2 py-1 text-white">
       <div className="flex flex-col gap-1.5">{primary}</div>
       <TurnTimer deadline={view.turnDeadline} />
-      <div className="scroll-y min-h-0 flex-1">
+      <div className="scroll-y flex min-h-0 flex-1 flex-col gap-1.5">
+        <TradeBanner />
         {deedTile ? (
           <Deed
             map={map}

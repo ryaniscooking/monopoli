@@ -204,6 +204,19 @@ export interface GameState {
   proposalsThisTurn: Partial<Record<PlayerId, number>>;
   /** Properties waiting to be auctioned one by one (bankruptcy to the bank, R-082). */
   auctionQueue: TileId[];
+  /**
+   * Recently declined or expired offers (newest last, capped), so bots do not repeat an offer the
+   * other player just turned down. Optional: older saves and live games may not have it.
+   */
+  declinedOffers?: DeclinedOffer[];
+}
+
+export interface DeclinedOffer {
+  from: PlayerId;
+  to: PlayerId;
+  /** A tile the proposer asked for. */
+  tile: TileId;
+  round: number;
 }
 
 export interface TradeBundle {

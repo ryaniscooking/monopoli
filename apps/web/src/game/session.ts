@@ -4,7 +4,9 @@ import { LocalGameClient } from '../clients/LocalGameClient';
 import { useUi, type SoloSetup } from '../store/ui';
 import { applyTheme, getMap } from './maps';
 import { saveStore, type LocalSave } from './saves';
-import { startTable, stopTable } from './table';
+import { forgetRoom } from '../online/lobby';
+import { leaveReactions } from '../online/reactions';
+import { startTable, stopTable, useTable } from './table';
 
 /** Dev / e2e hook (spec 15.5): reach UI scenarios without playing up to them. */
 function exposeTestHook(client: LocalGameClient): void {
@@ -96,9 +98,20 @@ export function resumeGame(save: LocalSave): void {
   useUi.getState().go('game');
 }
 
-/** Leave the table; the save stays for Resume. */
+/** Leave the table; the save stays for Resume (online: the seat can be rejoined). */
 export function exitGame(): void {
   stopTable();
+  leaveReactions();
+  useUi.getState().go('home');
+}
+
+/** Online: give the seat to a bot for good (spec 10.5). */
+export async function leaveOnlineGame(): Promise<void> {
+  const client = useTable.getState().client;
+  await client?.leave().catch(() => undefined);
+  stopTable();
+  leaveReactions();
+  forgetRoom();
   useUi.getState().go('home');
 }
 

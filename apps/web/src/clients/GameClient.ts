@@ -14,3 +14,17 @@ export interface GameClient {
   dispatch(action: Action): Promise<void>;
   leave(): Promise<void>;
 }
+
+/** What the table (animation queue) needs; local-only and online-only parts are optional. */
+export interface TableClient extends GameClient {
+  /** Local play: a bot with a decision to make now. */
+  botToAct?(): PlayerId | null;
+  /** Local play: let that bot act. */
+  stepBot?(): boolean;
+  /** Next deadline (auction, trade expiry, time limit, turn timer), epoch ms. */
+  nextDeadline?(): number | null;
+  /** Apply the clock (local) or ask the server to (online). */
+  tick?(): boolean | Promise<boolean>;
+  /** Stop listening without leaving. */
+  close?(): void;
+}

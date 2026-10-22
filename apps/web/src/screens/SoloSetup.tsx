@@ -207,7 +207,13 @@ export function SoloSetup() {
           {hasSave && <span className="text-xs opacity-70">{s.replaceSave}</span>}
         </div>
       </div>
-      <HouseRulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <HouseRulesSheet
+        open={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+        house={setup.house}
+        onChange={(house) => setup.update({ house, preset: 'house' })}
+        onOfficial={() => setup.update({ house: {}, preset: 'official' })}
+      />
     </div>
   );
 }

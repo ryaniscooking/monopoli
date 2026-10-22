@@ -7,6 +7,7 @@ import { en } from '../strings/en';
 import { Deed } from './Deed';
 import { act, useTable } from './table';
 import { useMyActions } from './useMyActions';
+import { useNow } from '../components/useNow';
 
 const t = en.game;
 
@@ -87,6 +88,7 @@ export function ActionRail() {
   return (
     <div className="flex h-full flex-col gap-2 py-1 text-white">
       <div className="flex flex-col gap-1.5">{primary}</div>
+      <TurnTimer deadline={view.turnDeadline} />
       <div className="scroll-y min-h-0 flex-1">
         {deedTile ? (
           <Deed
@@ -118,6 +120,21 @@ export function ActionRail() {
           </Button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Online turn timer (R-110): the server enforces it; this only shows the countdown. */
+function TurnTimer({ deadline }: { deadline: number | null }) {
+  const now = useNow(500);
+  if (deadline === null) return null;
+  const left = Math.max(0, Math.ceil((deadline - now) / 1000));
+  return (
+    <div
+      data-testid="turn-timer"
+      className={`text-center text-[12px] font-semibold ${left <= 10 ? 'text-red-300' : 'opacity-70'}`}
+    >
+      ⏱ {left}s
     </div>
   );
 }

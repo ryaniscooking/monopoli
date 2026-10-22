@@ -10,7 +10,7 @@ import {
   type ResolvedMap,
 } from '@monopoli/engine';
 import { create } from 'zustand';
-import type { LocalGameClient } from '../clients/LocalGameClient';
+import type { TableClient } from '../clients/GameClient';
 import { timeScale } from '../store/settings';
 import { describeEvent } from './describe';
 
@@ -21,7 +21,7 @@ export interface MoneyFloat {
 }
 
 export interface TableState {
-  client: LocalGameClient | null;
+  client: TableClient | null;
   map: ResolvedMap | null;
   /** The state the UI shows; lags the client state while animations play. */
   view: GameState | null;
@@ -36,6 +36,8 @@ export interface TableState {
   log: { id: number; text: string }[];
   rentCollected: Partial<Record<PlayerId, number>>;
   error: string | null;
+  /** Online (RemoteGameClient) rather than solo. */
+  online: boolean;
 }
 
 const empty = (): TableState => ({
@@ -52,6 +54,7 @@ const empty = (): TableState => ({
   log: [],
   rentCollected: {},
   error: null,
+  online: false,
 });
 
 export const useTable = create<TableState>()(() => empty());
@@ -73,10 +76,17 @@ function positions(state: GameState): Partial<Record<PlayerId, number>> {
   return Object.fromEntries(state.players.map((p) => [p.id, p.position]));
 }
 
-export function startTable(client: LocalGameClient): void {
+export function startTable(client: TableClient): void {
   stopTable();
   const gen = generation;
-  set({ ...empty(), client, map: client.map, view: client.state, pos: positions(client.state) });
+  set({
+    ...empty(),
+    client,
+    map: client.map,
+    view: client.state,
+    pos: positions(client.state),
+    online: 'roomId' in client,
+  });
   unsubscribe = client.subscribe((state, events) => {
     if (gen !== generation) return;
     queue.push({ state, events });
@@ -95,6 +105,7 @@ export function stopTable(): void {
   botTimer = null;
   unsubscribe?.();
   unsubscribe = null;
+  get().client?.close?.();
   set(empty());
 }
 
@@ -222,14 +233,17 @@ function scheduleTick(): void {
   if (tickTimer) clearTimeout(tickTimer);
   tickTimer = null;
   const { client } = get();
-  const deadline = client?.nextDeadline() ?? null;
+  const deadline = client?.nextDeadline?.() ?? null;
   if (!client || deadline === null) return;
   const gen = generation;
   tickTimer = setTimeout(
     () => {
       tickTimer = null;
       if (gen !== generation) return;
-      if (get().busy || !client.tick()) scheduleTick();
+      if (get().busy) return scheduleTick();
+      void Promise.resolve(client.tick?.()).then((done) => {
+        if (!done && gen === generation) scheduleTick();
+      });
     },
     Math.max(0, deadline - Date.now()) + 50,
   );
@@ -240,7 +254,7 @@ function scheduleBot(): void {
   if (botTimer) clearTimeout(botTimer);
   botTimer = null;
   const { client, view } = get();
-  if (!client || !view || view.phase === 'game_over' || !client.botToAct()) return;
+  if (!client?.botToAct || !view || view.phase === 'game_over' || !client.botToAct()) return;
   const gen = generation;
   // Human-like pause (spec 9.4); quicker during auctions so bidding keeps moving.
   const delay =
@@ -249,7 +263,7 @@ function scheduleBot(): void {
     botTimer = null;
     if (gen !== generation || get().busy) return;
     try {
-      client.stepBot();
+      client.stepBot?.();
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) });
     }

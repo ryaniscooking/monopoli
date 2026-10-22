@@ -5,7 +5,7 @@ import { useSetup, useUi } from '../store/ui';
 import { en } from '../strings/en';
 import { useMyActions } from './useMyActions';
 import { partyName } from './describe';
-import { exitGame, newSoloGame, quitGame } from './session';
+import { exitGame, leaveOnlineGame, newSoloGame, quitGame } from './session';
 import { act, useTable } from './table';
 
 const t = en.game;
@@ -134,6 +134,7 @@ export function LogSheet() {
 
 export function MenuSheet() {
   const map = useTable((s) => s.map);
+  const online = useTable((s) => s.online);
   const sheet = useUi((s) => s.sheet);
   const openSheet = useUi((s) => s.openSheet);
   const go = useUi((s) => s.go);
@@ -148,17 +149,20 @@ export function MenuSheet() {
           {m.settings}
         </Button>
         <Button data-testid="menu-exit" variant="light" onClick={exitGame}>
-          {m.exit}
+          {online ? m.exitOnline : m.exit}
         </Button>
         {!confirm ? (
           <Button variant="light" className="text-red-700" onClick={() => setConfirm(true)}>
-            {m.quit}
+            {online ? m.leaveOnline : m.quit}
           </Button>
         ) : (
           <div className="rounded-lg bg-red-50 p-2 text-sm">
-            <div className="mb-2">{m.confirmQuit}</div>
+            <div className="mb-2">{online ? m.confirmLeaveOnline : m.confirmQuit}</div>
             <div className="flex gap-2">
-              <Button variant="danger" onClick={() => map && void quitGame(map.id)}>
+              <Button
+                variant="danger"
+                onClick={() => (online ? void leaveOnlineGame() : map && void quitGame(map.id))}
+              >
                 {m.quit}
               </Button>
               <Button variant="light" onClick={() => setConfirm(false)}>
@@ -178,6 +182,8 @@ export function GameOver() {
   const view = useTable((s) => s.view);
   const busy = useTable((s) => s.busy);
   const rent = useTable((s) => s.rentCollected);
+  const online = useTable((s) => s.online);
+  const go = useUi((s) => s.go);
   const setup = useSetup();
   if (!map || !view) return null;
   const o = t.over;
@@ -224,7 +230,15 @@ export function GameOver() {
         </tbody>
       </table>
       <div className="mt-3 flex justify-center gap-2">
-        <Button onClick={() => newSoloGame({ ...setup, mapId: map.id })}>{o.again}</Button>
+        <Button
+          onClick={() => {
+            if (!online) return newSoloGame({ ...setup, mapId: map.id });
+            exitGame();
+            go('online');
+          }}
+        >
+          {o.again}
+        </Button>
         <Button variant="light" onClick={exitGame}>
           {o.home}
         </Button>

@@ -217,6 +217,9 @@ importers:
       '@monopoli/maps':
         specifier: workspace:*
         version: link:../../packages/maps
+      '@supabase/supabase-js':
+        specifier: ^2.118.0
+        version: 2.118.0
       '@use-gesture/react':
         specifier: ^10.3.1
         version: 10.3.1(react@19.3.1)

@@ -15,6 +15,7 @@
   "dependencies": {
     "@monopoli/engine": "workspace:*",
     "@monopoli/maps": "workspace:*",
+    "@supabase/supabase-js": "^2.118.0",
     "@use-gesture/react": "^10.3.1",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.61.0",

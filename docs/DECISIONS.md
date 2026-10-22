@@ -63,3 +63,21 @@ Record assumptions, deviations from docs/BUILD_SPEC.md, and verified external li
 - **Sanity targets (`pnpm sim:targets`, 400 games per matchup, seats alternated, turn-cap draws count as losses):** Hard beats Easy 80-82%, Normal beats Easy 79%, Hard beats Normal 68-69% on both maps (targets 70 / 60 / 55%).
 - **Games now finish:** Easy-vs-Easy 1v1 ends in ~180 turns in ~87% of games; mixed-level 4-player games ~99% within the cap.
 - **Saved games:** state schema v2; Phase 2 saves (v1) are upgraded on load.
+
+## Phase 4 (2026-10-22)
+
+- **Supabase keys (verified against current docs):** the web app uses the new **publishable key** (`VITE_SUPABASE_PUBLISHABLE_KEY`, replacing the spec's `VITE_SUPABASE_ANON_KEY`). Edge Functions read the secret key from `SUPABASE_SECRET_KEYS` (JSON) with the legacy `SUPABASE_SERVICE_ROLE_KEY` as fallback (local CLI). No secret ever reaches the client.
+- **Auth:** `verify_jwt = true` on every function (the platform check accepts the project's asymmetric JWTs) **and** each handler resolves the user with `auth.getUser(token)`; request bodies never carry a player id (zod `.strict()` rejects extra keys).
+- **Server code lives in `packages/server`** (strict TypeScript, typechecked with the monorepo) and is bundled with the engine, maps, zod and supabase-js into `supabase/functions/_shared/server.js` (~740 KB) by `pnpm build:engine-edge`; each function's `index.ts` just calls `serve('<name>')`. The generated folder is gitignored, so deploys always run the build first.
+- **Idempotency is checked before the engine runs:** a repeated `clientActionId` returns `409 DUPLICATE` (with the current state) even if the repeated move would be legal again. Clients treat `DUPLICATE` after a retry as success and resync. Clients retry once on 5xx/network errors (Edge workers can be recycled mid-request).
+- **Stale versions:** `409 STALE` with the latest version and state; the client resyncs (fetches the `games` row and all `game_events` since its version) and the player can act again.
+- **Bot loop** runs inside the same invocation (max 200 actions), including clock timeouts (`system_timeout`), so a human's action returns only when a human must decide again.
+- **Seat → player id:** seats in ascending order map to p0, p1, ... (fixed once the game starts; in-game "leave" keeps the seat and hands it to a bot).
+- **Takeover/reclaim** (spec 10.7) via the engine's pure `setControlledBy` with a `control_changed` event. Reclaim happens immediately when the player calls `game-tick` or `join-room` (not "at the next decision boundary"), which is simpler and has the same effect for the player.
+- **Safety net:** the spec's per-minute pg_cron tick (calling the Edge Function via pg_net with a stored secret) is **not** used. Every client heartbeats `game-tick` every 10 s and when a deadline passes; if every client is gone nobody is waiting on a deadline. Nightly cleanup runs as pure SQL via pg_cron (`cleanup_rooms`, 03:17 UTC).
+- **Rate limits:** Postgres fixed windows per user — game-action 10/s and 180/min, game-tick 40/min, join-room 10/min, create-room 10/h, plus at most 3 open hosted rooms. No per-IP limit in our code: Supabase already limits anonymous sign-ins to 30 per hour per IP.
+- **Reactions:** private Broadcast channel `room:<CODE>` with RLS policies on `realtime.messages` (members only). Receivers accept only the 8 whitelisted emoji, max one per sender per 2 s. For the private-channel check to be enforced, "Allow public access" must be off in the project's Realtime settings (cosmetic feature either way).
+- **Realtime limits:** Postgres Changes with RLS on `games`, `game_events`, `rooms`, `room_players`; fine at friends scale (Supabase recommends Broadcast above ~3,000 subscribers).
+- **Edge Function limits (checked 2026-10-22):** 2 s CPU per request, 150 s wall clock (Free), 256 MB memory, 20 MB bundle (CLI) / 5 MB (server-side bundling).
+- **Local stack:** `edge_runtime.policy = "oneshot"` (a fresh worker per request) keeps integration tests deterministic; local anonymous sign-in limit raised for tests. Production is unaffected by `config.toml` runtime settings.
+- **Tests:** 18 server integration tests on the local stack (lobby, play, Realtime, takeover/reclaim, abuse limits and all 8 spec-11 cheat tests) and a two-phone Playwright game; CI runs both in an `online` job.

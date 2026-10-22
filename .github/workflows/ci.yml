@@ -26,3 +26,31 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --filter web exec playwright install --with-deps chromium
       - run: pnpm --filter web e2e
+
+  online:
+    # Online play against a local Supabase stack: server integration tests (incl. the
+    # spec-11 cheat tests) and a two-phone Playwright game.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:engine-edge
+      - run: supabase start -x imgproxy,studio,inbucket,vector,logflare,supavisor
+      - run: pnpm --filter @monopoli/server test:integration
+      - name: Configure the web app for the local stack
+        run: |
+          echo "VITE_SUPABASE_URL=$(supabase status -o json | jq -r .API_URL)" > apps/web/.env.local
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=$(supabase status -o json | jq -r .PUBLISHABLE_KEY)" >> apps/web/.env.local
+      - name: Install Playwright browser
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm --filter web exec playwright test e2e/online.spec.ts
+        env:
+          E2E_ONLINE: '1'

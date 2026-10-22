@@ -54,8 +54,13 @@ export function Home() {
         >
           {en.home.playSolo}
         </Button>
-        <Button variant="secondary" disabled className="text-base">
-          {en.home.playOnline} <span className="text-xs">· {en.home.onlineSoon}</span>
+        <Button
+          data-testid="play-online"
+          variant="secondary"
+          className="text-base"
+          onClick={() => go('online')}
+        >
+          {en.home.playOnline}
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={() => go('howto')}>

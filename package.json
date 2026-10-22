@@ -18,7 +18,8 @@
     "sim:smoke": "tsx scripts/sim.ts --smoke --bots easy,normal,hard,normal",
     "maps:validate": "tsx scripts/maps-validate.ts",
     "build:engine-edge": "tsx scripts/build-engine-for-edge.ts",
-    "sim:targets": "tsx scripts/sim.ts --targets"
+    "sim:targets": "tsx scripts/sim.ts --targets",
+    "test:online": "pnpm build:engine-edge && pnpm --filter @monopoli/server test:integration && E2E_ONLINE=1 pnpm --filter web exec playwright test e2e/online.spec.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

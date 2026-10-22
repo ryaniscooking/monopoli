@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Bot, Lock } from 'lucide-react';
 import { Money } from '../components/ui';
 import { en } from '../strings/en';
+import { ReactionBar, ReactionFloat } from './Reactions';
 import { useTable } from './table';
 
 /** Left rail (spec 12.3): token, name, cash, owned groups, jail, bot badge, turn glow. */
@@ -11,6 +12,7 @@ export function PlayerRail() {
   const view = useTable((s) => s.view);
   const floats = useTable((s) => s.floats);
   const me = useTable((s) => s.client?.me);
+  const online = useTable((s) => s.online);
   if (!map || !view) return null;
 
   return (
@@ -72,6 +74,7 @@ export function PlayerRail() {
                 ))}
               </div>
             </div>
+            <ReactionFloat player={p.id} />
             <AnimatePresence>
               {floats
                 .filter((f) => f.player === p.id)
@@ -94,6 +97,7 @@ export function PlayerRail() {
           </div>
         );
       })}
+      {online && <ReactionBar />}
     </div>
   );
 }

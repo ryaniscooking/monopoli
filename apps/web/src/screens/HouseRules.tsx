@@ -1,6 +1,5 @@
-import { OFFICIAL_SETTINGS, type RuleSettings } from '@monopoli/engine';
+import { OFFICIAL_SETTINGS, type BotLevel, type RuleSettings } from '@monopoli/engine';
 import { Button, Modal } from '../components/ui';
-import { useSetup } from '../store/ui';
 import { en } from '../strings/en';
 
 const r = en.rules;
@@ -25,8 +24,15 @@ const TOGGLES: Toggle[] = [
   'unlimitedBuildings',
 ];
 
-type Choice = 'startingCash' | 'goSalary' | 'jailFine' | 'timeLimitMin' | 'auctionTimerSec';
-const CHOICES: { key: Choice; options: number[]; label: (n: number) => string }[] = [
+type Choice =
+  | 'startingCash'
+  | 'goSalary'
+  | 'jailFine'
+  | 'timeLimitMin'
+  | 'auctionTimerSec'
+  | 'turnTimerSec'
+  | 'disconnectGraceSec';
+const CHOICES: { key: Choice; options: number[]; label: (n: number) => string; online?: true }[] = [
   { key: 'startingCash', options: [1000, 1500, 2000, 2500], label: (n) => String(n) },
   { key: 'goSalary', options: [100, 200, 300, 400], label: (n) => String(n) },
   { key: 'jailFine', options: [50, 100], label: (n) => String(n) },
@@ -36,19 +42,41 @@ const CHOICES: { key: Choice; options: number[]; label: (n: number) => string }[
     label: (n) => (n === 0 ? r.off : r.minutes(n)),
   },
   { key: 'auctionTimerSec', options: [10, 15, 20, 30], label: (n) => r.seconds(n) },
+  {
+    key: 'turnTimerSec',
+    options: [0, 30, 60, 90],
+    label: (n) => (n === 0 ? r.off : r.seconds(n)),
+    online: true,
+  },
+  { key: 'disconnectGraceSec', options: [30, 60, 120], label: (n) => r.seconds(n), online: true },
 ];
 
 /**
  * House-rule toggles (spec 7.12). Money values are classic units (scaled by the map).
- * The turn timer is online-only, so it is not offered for solo games.
+ * Online rooms also offer the turn timer, reconnect grace period and takeover bot level.
  */
-export function HouseRulesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const house = useSetup((s) => s.house);
-  const update = useSetup((s) => s.update);
+export function HouseRulesSheet({
+  open,
+  onClose,
+  house,
+  onChange,
+  onOfficial,
+  online = false,
+  readOnly = false,
+}: {
+  open: boolean;
+  onClose: () => void;
+  house: Partial<RuleSettings>;
+  onChange: (house: Partial<RuleSettings>) => void;
+  onOfficial: () => void;
+  online?: boolean;
+  readOnly?: boolean;
+}) {
   const value = <K extends keyof RuleSettings>(k: K): RuleSettings[K] =>
     (house[k] ?? OFFICIAL_SETTINGS[k]) as RuleSettings[K];
-  const set = (patch: Partial<RuleSettings>) =>
-    update({ house: { ...house, ...patch }, preset: 'house' });
+  const set = (patch: Partial<RuleSettings>) => {
+    if (!readOnly) onChange({ ...house, ...patch });
+  };
 
   return (
     <Modal
@@ -60,20 +88,22 @@ export function HouseRulesSheet({ open, onClose }: { open: boolean; onClose: () 
       <div className="sticky top-0 z-10 -mx-4 mb-2 flex items-center justify-between bg-tile px-4 pt-4 pb-2">
         <div className="text-lg font-bold">{r.house}</div>
         <div className="flex gap-1.5">
-          <Button
-            variant="light"
-            onClick={() => {
-              update({ house: {}, preset: 'official' });
-              onClose();
-            }}
-          >
-            {r.official}
-          </Button>
+          {!readOnly && (
+            <Button
+              variant="light"
+              onClick={() => {
+                onOfficial();
+                onClose();
+              }}
+            >
+              {r.official}
+            </Button>
+          )}
           <Button onClick={onClose}>{en.game.close}</Button>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-        {CHOICES.map(({ key, options, label }) => (
+        {CHOICES.filter((c) => online || !c.online).map(({ key, options, label }) => (
           <div key={key} className="col-span-2 flex items-center gap-1.5 text-sm">
             <span className="w-32 shrink-0 opacity-80">{r[key]}</span>
             {options.map((o) => (
@@ -81,6 +111,7 @@ export function HouseRulesSheet({ open, onClose }: { open: boolean; onClose: () 
                 key={o}
                 variant={value(key) === o ? 'primary' : 'light'}
                 className="min-h-8 flex-1 px-1 text-[12px]"
+                disabled={readOnly && value(key) !== o}
                 onClick={() => set({ [key]: o } as Partial<RuleSettings>)}
               >
                 {label(o)}
@@ -88,6 +119,22 @@ export function HouseRulesSheet({ open, onClose }: { open: boolean; onClose: () 
             ))}
           </div>
         ))}
+        {online && (
+          <div className="col-span-2 flex items-center gap-1.5 text-sm">
+            <span className="w-32 shrink-0 opacity-80">{r.takeoverBotLevel}</span>
+            {(['easy', 'normal', 'hard'] as BotLevel[]).map((lvl) => (
+              <Button
+                key={lvl}
+                variant={value('takeoverBotLevel') === lvl ? 'primary' : 'light'}
+                className="min-h-8 flex-1 px-1 text-[12px]"
+                disabled={readOnly && value('takeoverBotLevel') !== lvl}
+                onClick={() => set({ takeoverBotLevel: lvl })}
+              >
+                {en.level[lvl]}
+              </Button>
+            ))}
+          </div>
+        )}
         {TOGGLES.map((key) => (
           <label
             key={key}
@@ -97,6 +144,7 @@ export function HouseRulesSheet({ open, onClose }: { open: boolean; onClose: () 
               type="checkbox"
               className="h-5 w-5 shrink-0"
               checked={value(key)}
+              disabled={readOnly}
               onChange={(e) => set({ [key]: e.target.checked } as Partial<RuleSettings>)}
             />
             {r[key]}

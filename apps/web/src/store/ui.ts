@@ -4,11 +4,13 @@ import { persist } from 'zustand/middleware';
 import { DEFAULT_MAP_ID } from '../game/maps';
 import { safeStorage } from './settings';
 
-export type Screen = 'home' | 'setup' | 'game' | 'settings' | 'howto';
+export type Screen = 'home' | 'setup' | 'game' | 'settings' | 'howto' | 'online' | 'lobby';
 export type Sheet = null | 'properties' | 'trade' | 'log' | 'menu';
 
 interface UiState {
   screen: Screen;
+  /** Room code from a /r/CODE share link, waiting for a nickname. */
+  pendingCode: string | null;
   /** Where Settings returns to. */
   back: Screen;
   selectedTile: string | null;
@@ -21,6 +23,7 @@ interface UiState {
 /** UI-only state (spec 12.7): never holds game rules or game state. */
 export const useUi = create<UiState>()((set, get) => ({
   screen: 'home',
+  pendingCode: null,
   back: 'home',
   selectedTile: null,
   sheet: null,

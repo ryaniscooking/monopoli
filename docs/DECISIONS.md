@@ -9,5 +9,5 @@ Record assumptions, deviations from docs/BUILD_SPEC.md, and verified external li
 - **TypeScript pinned to 6.0.x**, not 7.x: `typescript-eslint` 8.72 supports TypeScript `<6.1.0` only. Revisit when typescript-eslint supports TS 7.
 - **Engine purity is enforced by lint:** `Math.random`, `Date.now`, `new Date`, and the `window`/`document`/`process`/`crypto` globals are lint errors inside `packages/engine/src`.
 - **Placeholder scripts:** `sim`, `sim:smoke`, `maps:validate` and `build:engine-edge` exist as no-ops so CI and the CLAUDE.md workflow run end to end. They are implemented in Phase 1 (sim, maps) and Phase 4 (edge bundle).
-- **Vercel settings live in `vercel.json`** (install, build, output directory, SPA rewrite, cache headers), so the dashboard needs no overrides.
+- **Vercel settings live in `vercel.json`** (build command, output directory, SPA rewrite, cache headers), so the dashboard needs no overrides.
 - **Vercel uses pnpm via Corepack:** the Vercel project needs the env var `ENABLE_EXPERIMENTAL_COREPACK=1` so the `packageManager` pin (pnpm 12) is used. Without it Vercel infers pnpm 9/10 from `lockfileVersion: 9.0`. `vercel.json` sets no `installCommand`, because a custom install command can make Vercel use the oldest available pnpm (Vercel docs, checked 2026-10-22).

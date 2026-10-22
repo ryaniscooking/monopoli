@@ -146,15 +146,17 @@ describe('playing (spec 10.6)', () => {
 
   it('realtime delivers the new game state to the other player', async () => {
     [alice, bob] = await fresh(2);
-    const { roomId } = await startedRoom(alice, [bob]);
+    const { roomId, code } = await startedRoom(alice, [bob]);
     const seen: number[] = [];
     let wake: () => void = () => undefined;
     // Wait until the subscription is live, then give the change feed a moment to warm up
     // (a freshly started stack, e.g. in CI, needs a few seconds).
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('realtime did not subscribe')), 20_000);
+      // Same kind of channel the app uses: private and members-only (the live project only
+      // allows private channels).
       bob.client
-        .channel(`test-${roomId}`)
+        .channel(`room:${code}:test`, { config: { private: true } })
         .on(
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'games', filter: `room_id=eq.${roomId}` },
@@ -412,6 +414,22 @@ describe('cheat protection (spec 11)', () => {
   it('system timeouts cannot be sent by clients', async () => {
     const res = await me.act(roomId, { type: 'system_timeout' } as never);
     expect(res.status).toBe(400);
+  });
+});
+
+describe('realtime privacy', () => {
+  it('a non-member cannot join a room channel', async () => {
+    const [h, g, outsider] = await fresh(3);
+    const { code } = await startedRoom(h, [g]);
+    const status = await new Promise<string>((resolve) => {
+      outsider.client
+        .channel(`room:${code}:lobby`, { config: { private: true } })
+        .subscribe((s) => {
+          if (s !== 'SUBSCRIBED' && s !== 'CHANNEL_ERROR' && s !== 'TIMED_OUT') return;
+          resolve(s);
+        });
+    });
+    expect(status).not.toBe('SUBSCRIBED');
   });
 });
 

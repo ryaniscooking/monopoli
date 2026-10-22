@@ -54,6 +54,9 @@ export const useLobby = create<LobbyState>()(() => ({
 
 const LAST_ROOM_KEY = 'monopoli:lastRoom';
 let channel: RealtimeChannel | null = null;
+let poll: ReturnType<typeof setInterval> | null = null;
+/** Fallback refresh while in the lobby, in case Realtime is slow or unavailable. */
+const LOBBY_POLL_MS = 4000;
 
 /** The room to offer "Rejoin" for on Home (a game this device was playing). */
 export function lastRoom(): { roomId: string; code: string } | null {
@@ -113,7 +116,8 @@ async function openLobby(roomId: string, code: string): Promise<void> {
   closeLobby();
   rememberRoom({ roomId, code });
   channel = supabase()
-    .channel(`lobby:${roomId}`)
+    // Private, members-only channel (works when the project allows private channels only).
+    .channel(`room:${code}:lobby`, { config: { private: true } })
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
@@ -127,6 +131,7 @@ async function openLobby(roomId: string, code: string): Promise<void> {
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') void refresh(roomId);
     });
+  poll = setInterval(() => void refresh(roomId), LOBBY_POLL_MS);
   await refresh(roomId);
   if (useUi.getState().screen !== 'game') useUi.getState().go('lobby');
 }
@@ -134,6 +139,8 @@ async function openLobby(roomId: string, code: string): Promise<void> {
 export function closeLobby(): void {
   if (channel) void supabase().removeChannel(channel);
   channel = null;
+  if (poll) clearInterval(poll);
+  poll = null;
 }
 
 export async function createOnlineRoom(nickname: string, mapId: string, rules: RoomRules) {
@@ -204,19 +211,26 @@ export function forgetRoom(): void {
 
 const roomId = () => useLobby.getState().room?.id ?? '';
 
+/** Run a lobby action, then show its result at once (don't wait for Realtime). */
+async function act(fn: () => Promise<unknown>) {
+  await run(fn);
+  const id = roomId();
+  if (id) await refresh(id).catch(() => undefined);
+}
+
 export const lobbyActions = {
-  setReady: (ready: boolean) => run(() => callFunction('set-ready', { roomId: roomId(), ready })),
+  setReady: (ready: boolean) => act(() => callFunction('set-ready', { roomId: roomId(), ready })),
   addBot: (level: BotLevel) =>
-    run(() => callFunction('update-room', { roomId: roomId(), patch: { addBot: { level } } })),
+    act(() => callFunction('update-room', { roomId: roomId(), patch: { addBot: { level } } })),
   removeSeat: (seat: number) =>
-    run(() => callFunction('update-room', { roomId: roomId(), patch: { removeSeat: seat } })),
+    act(() => callFunction('update-room', { roomId: roomId(), patch: { removeSeat: seat } })),
   setMap: (mapId: string) =>
-    run(() => callFunction('update-room', { roomId: roomId(), patch: { mapId } })),
+    act(() => callFunction('update-room', { roomId: roomId(), patch: { mapId } })),
   setRules: (rules: RoomRules) =>
-    run(() => callFunction('update-room', { roomId: roomId(), patch: { rules } })),
+    act(() => callFunction('update-room', { roomId: roomId(), patch: { rules } })),
   setMe: (me: { nickname?: string; token?: string; color?: string }) =>
-    run(() => callFunction('update-room', { roomId: roomId(), patch: { me } })),
-  start: () => run(() => callFunction('start-game', { roomId: roomId() })),
+    act(() => callFunction('update-room', { roomId: roomId(), patch: { me } })),
+  start: () => act(() => callFunction('start-game', { roomId: roomId() })),
   leave: async () => {
     await run(() => callFunction('leave-room', { roomId: roomId() }));
     closeLobby();

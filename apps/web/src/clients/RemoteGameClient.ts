@@ -6,6 +6,8 @@ import { callFunction, OnlineError, supabase } from '../online/supabase';
 import type { GameClient, GameListener } from './GameClient';
 
 const HEARTBEAT_MS = 10_000;
+/** Without a live Realtime channel, look for new moves this often instead. */
+const FALLBACK_POLL_MS = 3_000;
 
 export class RemoteGameClient implements GameClient {
   private listeners = new Set<GameListener>();
@@ -14,6 +16,8 @@ export class RemoteGameClient implements GameClient {
   /** Serializes resyncs so batches are emitted in version order. */
   private syncing: Promise<void> = Promise.resolve();
   private closed = false;
+  private live = false;
+  private fallback: ReturnType<typeof setInterval> | null = null;
 
   private constructor(
     readonly map: ResolvedMap,
@@ -103,6 +107,7 @@ export class RemoteGameClient implements GameClient {
   close(): void {
     this.closed = true;
     if (this.heartbeat) clearInterval(this.heartbeat);
+    if (this.fallback) clearInterval(this.fallback);
     if (this.channel) void supabase().removeChannel(this.channel);
     this.channel = null;
     this.listeners.clear();
@@ -110,7 +115,10 @@ export class RemoteGameClient implements GameClient {
 
   private listen(): void {
     this.channel = supabase()
-      .channel(`game:${this.roomId}:${crypto.randomUUID().slice(0, 8)}`)
+      // Private, members-only channel (works on "private channels only" projects).
+      .channel(`room:${this.code}:game:${crypto.randomUUID().slice(0, 8)}`, {
+        config: { private: true },
+      })
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `room_id=eq.${this.roomId}` },
@@ -121,8 +129,12 @@ export class RemoteGameClient implements GameClient {
       )
       .subscribe((status) => {
         // (Re)connected: fetch anything missed while away (spec 10.8).
-        if (status === 'SUBSCRIBED') void this.resync();
+        this.live = status === 'SUBSCRIBED';
+        if (this.live) void this.resync();
       });
+    this.fallback = setInterval(() => {
+      if (!this.live) void this.resync();
+    }, FALLBACK_POLL_MS);
     this.heartbeat = setInterval(() => void this.tick(), HEARTBEAT_MS);
     void this.tick();
   }

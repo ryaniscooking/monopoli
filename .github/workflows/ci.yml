@@ -44,6 +44,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:engine-edge
       - run: supabase start -x imgproxy,studio,inbucket,vector,logflare,supavisor
+      - name: Allow private Realtime channels only (same as the live project)
+        run: |
+          docker exec supabase_db_monopoli psql -U supabase_admin -d postgres \
+            -c "update _realtime.tenants set private_only = true"
+          docker restart supabase_realtime_monopoli
+          sleep 5
       - run: pnpm --filter @monopoli/server test:integration
       - name: Configure the web app for the local stack
         run: |

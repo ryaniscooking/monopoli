@@ -1,8 +1,10 @@
 // Payments, debt (R-080, R-084) and bankruptcy (R-081, R-082).
 import type { Continuation, DebtEntry, Party, PlayerId } from '../types';
 import { alivePlayers, getPlayer, type Ctx } from './ctx';
+import { sellAllBuildings } from './build';
 import { landOn } from './landing';
 import { moveForward } from './movement';
+import { cancelTradesOf } from './trade';
 import { advanceTurn, checkGameOver } from './turn';
 
 /** Move money; every cash change in the engine goes through here (one money_transfer event). */
@@ -79,16 +81,21 @@ export function declareBankruptcy(c: Ctx): void {
   if (d?.kind !== 'debt') throw new Error('No open debt');
   c.s.pending = null;
   const p = getPlayer(c.s, d.debtor);
+  // R-081: buildings are sold to the bank first; the proceeds go to the creditor with the cash.
+  sellAllBuildings(c, p.id);
+  cancelTradesOf(c, p.id);
   const owned = c.map.buyable.filter((id) => c.s.properties[id]?.owner === p.id);
   const followUps: DebtEntry[] = [];
 
   if (d.creditor === 'bank' || d.creditor === 'pot') {
-    // R-082: cash to the bank, properties back to the bank unmortgaged, jail cards to deck bottom.
+    // R-082: cash to the bank; properties back to the bank unmortgaged and auctioned one by one;
+    // jail cards to the deck bottom.
     transfer(c, p.id, 'bank', p.cash, 'bankruptcy');
     for (const id of owned) {
       c.s.properties[id] = { owner: null, mortgaged: false, buildings: 0 };
       c.ev.push({ type: 'property_returned', tile: id });
     }
+    c.s.auctionQueue.push(...owned);
     for (const cardId of p.jailCardIds) returnJailCard(c, cardId);
   } else {
     // R-081: everything goes to the creditor; R-064: they pay 10% interest on mortgaged tiles.

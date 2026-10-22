@@ -11,10 +11,13 @@ import {
   decide,
   getActingPlayer,
   getLegalActions,
+  getPendingActors,
   makeSettings,
   MoneyLedger,
   randomInt,
   resolveMap,
+  type Action,
+  type PlayerId,
   type RuleSettings,
 } from '../src/index';
 
@@ -26,6 +29,9 @@ const houseRules = fc.record({
   doubleRentOnSet: fc.boolean(),
   noRentInJail: fc.boolean(),
   offTurnManagement: fc.boolean(),
+  evenBuild: fc.boolean(),
+  unlimitedBuildings: fc.boolean(),
+  auctionOnDecline: fc.boolean(),
   startingCash: fc.constantFrom(300, 1500, 3000),
 }) as fc.Arbitrary<Partial<RuleSettings>>;
 
@@ -48,18 +54,48 @@ describe('invariants under random legal play', () => {
           }));
           let { state, secrets } = createGame(map, makeSettings('house', house), seats, rng, 0);
           const ledger = new MoneyLedger(state);
+          let now = 0;
           for (let step = 0; step < 400 && state.phase !== 'game_over'; step++) {
-            // Mostly the player who must act; sometimes anyone (off-turn mortgaging).
-            const acting = getActingPlayer(state);
-            const anyone = state.players[randomInt(rng, state.players.length)]?.id;
-            const who = randomInt(rng, 5) === 0 && anyone ? anyone : acting;
-            if (!who) break;
-            const legal = getLegalActions(map, state, who);
-            if (legal.length === 0) continue;
-            const action = legal[randomInt(rng, legal.length)]!;
-            expect(ActionSchema.safeParse(action).success).toBe(true);
-            const res = applyAction({ map, rng, now: 0 }, state, secrets, who, action);
-            if (!res.ok) throw new Error(`legal action rejected: ${res.error.message}`);
+            now += randomInt(rng, 4) * 5_000; // sometimes timers expire
+            let who: PlayerId | 'system';
+            let action: Action;
+            const roll = randomInt(rng, 20);
+            if (roll === 0) {
+              who = 'system';
+              action = { type: 'system_timeout' };
+            } else if (roll === 1) {
+              // A random trade proposal between two random players (often illegal: that's fine).
+              const from = state.players[randomInt(rng, state.players.length)]!;
+              const to = state.players[randomInt(rng, state.players.length)]!;
+              const tilesOf = (id: string) =>
+                map.buyable.filter((t) => state.properties[t]?.owner === id);
+              const pick = (tiles: string[]) => tiles.filter(() => randomInt(rng, 3) === 0);
+              who = from.id;
+              action = {
+                type: 'propose_trade',
+                to: to.id,
+                give: { cash: randomInt(rng, 3) * 50, tiles: pick(tilesOf(from.id)), jailCards: 0 },
+                get: { cash: 0, tiles: pick(tilesOf(to.id)), jailCards: 0 },
+              };
+            } else {
+              // Mostly a player the game waits on; sometimes anyone (off-turn management).
+              const waiting = getPendingActors(state);
+              const anyone = state.players[randomInt(rng, state.players.length)]!.id;
+              const p =
+                randomInt(rng, 5) === 0 || waiting.length === 0
+                  ? anyone
+                  : waiting[randomInt(rng, waiting.length)]!;
+              const legal = getLegalActions(map, state, p);
+              if (legal.length === 0) continue;
+              who = p;
+              action = legal[randomInt(rng, legal.length)]!;
+            }
+            if (who !== 'system') expect(ActionSchema.safeParse(action).success).toBe(true);
+            const res = applyAction({ map, rng, now }, state, secrets, who, action);
+            if (!res.ok) {
+              if (action.type === 'propose_trade' || who === 'system') continue;
+              throw new Error(`legal action rejected: ${res.error.message}`);
+            }
             state = res.state;
             secrets = res.secrets;
             ledger.apply(res.events);
@@ -68,7 +104,7 @@ describe('invariants under random legal play', () => {
           }
         },
       ),
-      { numRuns: 150 },
+      { numRuns: 200 },
     );
   });
 

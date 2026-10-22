@@ -120,6 +120,8 @@ export interface PlayerState {
   jailCardIds: string[];
   bankrupt: boolean;
   connected: boolean;
+  /** Consecutive turn-timer timeouts (R-110). */
+  timeouts: number;
 }
 
 export interface PropertyState {
@@ -143,8 +145,25 @@ export interface DebtEntry {
 /** Work that resumes once an open debt is paid. */
 export type Continuation = { kind: 'jail_move'; player: PlayerId; steps: number };
 
+export type AuctionItem =
+  | { type: 'property'; tile: TileId }
+  /** R-045 building shortage: one house or hotel, placed on the winner's set. */
+  | { type: 'building'; building: 'house' | 'hotel'; requestedBy: PlayerId; tile: TileId };
+
 export type Pending =
   | { kind: 'buy'; player: PlayerId; tile: TileId; price: number }
+  | {
+      kind: 'auction';
+      item: AuctionItem;
+      highBid: number;
+      highBidder: PlayerId | null;
+      /** Players still bidding (withdrawn players are removed). */
+      active: PlayerId[];
+      /** First bid must be at least this. */
+      minBid: number;
+      /** Epoch ms; every bid resets it (R-052). */
+      deadline: number;
+    }
   | {
       kind: 'debt';
       debtor: PlayerId;
@@ -177,6 +196,30 @@ export interface GameState {
   endsAt: number | null;
   lastRoundPending: boolean;
   winner: PlayerId | null;
+  endReason: 'last_standing' | 'time_limit' | null;
+  trades: TradeOffer[];
+  /** Next trade id number. */
+  tradeSeq: number;
+  /** Trade proposals made this turn, per player (anti-spam, max 3). */
+  proposalsThisTurn: Partial<Record<PlayerId, number>>;
+  /** Properties waiting to be auctioned one by one (bankruptcy to the bank, R-082). */
+  auctionQueue: TileId[];
+}
+
+export interface TradeBundle {
+  cash: number;
+  tiles: TileId[];
+  jailCards: number;
+}
+
+/** `give` and `get` are from the proposer's (`from`) point of view. */
+export interface TradeOffer {
+  id: string;
+  from: PlayerId;
+  to: PlayerId;
+  give: TradeBundle;
+  get: TradeBundle;
+  expiresAt: number;
 }
 
 // ---------- Hidden (server only; never sent to clients) ----------
@@ -204,7 +247,17 @@ export type Action =
   | { type: 'use_jail_card' }
   | { type: 'end_turn' }
   | { type: 'pay_debt' }
-  | { type: 'declare_bankruptcy' };
+  | { type: 'declare_bankruptcy' }
+  | { type: 'build'; tile: TileId }
+  | { type: 'sell_building'; tile: TileId }
+  | { type: 'auction_bid'; amount: number }
+  | { type: 'auction_withdraw' }
+  | { type: 'propose_trade'; to: PlayerId; give: TradeBundle; get: TradeBundle }
+  | { type: 'accept_trade'; id: string }
+  | { type: 'decline_trade'; id: string }
+  | { type: 'cancel_trade'; id: string }
+  /** Server/local clock tick: ends expired auctions, trades, turn timers, the time limit. */
+  | { type: 'system_timeout' };
 
 // ---------- Events (animation, sound, log) ----------
 export type GameEvent =
@@ -234,10 +287,27 @@ export type GameEvent =
   | { type: 'debt_cleared'; debtor: PlayerId }
   | { type: 'bankrupt'; player: PlayerId; creditor: Party }
   | { type: 'property_returned'; tile: TileId }
-  | { type: 'game_over'; winner: PlayerId; reason: 'last_standing' };
+  | { type: 'built'; player: PlayerId; tile: TileId; buildings: number; cost: number }
+  | { type: 'sold_building'; player: PlayerId; tile: TileId; buildings: number; amount: number }
+  | { type: 'auction_started'; item: AuctionItem; minBid: number; deadline: number }
+  | { type: 'auction_bid'; player: PlayerId; amount: number; deadline: number }
+  | { type: 'auction_withdrew'; player: PlayerId }
+  | { type: 'auction_ended'; item: AuctionItem; winner: PlayerId | null; amount: number }
+  | { type: 'trade_proposed'; offer: TradeOffer }
+  | { type: 'trade_accepted'; offer: TradeOffer }
+  | { type: 'trade_declined'; id: string }
+  | {
+      type: 'trade_cancelled';
+      id: string;
+      reason: 'cancelled' | 'expired' | 'invalid' | 'bankrupt';
+    }
+  | { type: 'timed_out'; player: PlayerId; action: Action['type'] }
+  | { type: 'control_changed'; player: PlayerId; controlledBy: 'human' | 'bot' }
+  | { type: 'last_round'; endsAt: number }
+  | { type: 'game_over'; winner: PlayerId; reason: 'last_standing' | 'time_limit' };
 
 export interface RuleError {
-  code: 'ILLEGAL_ACTION' | 'NOT_SUPPORTED';
+  code: 'ILLEGAL_ACTION' | 'NOTHING_DUE';
   message: string;
 }
 

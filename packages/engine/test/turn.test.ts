@@ -15,7 +15,9 @@ describe('7.2 Turn flow', () => {
     rollFrom(g, 'p0', 0, 3, 3); // lands on p03, unowned
     expect(g.state.pending?.kind).toBe('buy');
     expect(tryAct(g, 'p0', { type: 'roll' }).ok).toBe(false);
-    act(g, 'p0', { type: 'decline_buy' });
+    act(g, 'p0', { type: 'decline_buy' }); // starts an auction (R-050)
+    act(g, 'p0', { type: 'auction_withdraw' });
+    act(g, 'p1', { type: 'auction_withdraw' });
     expect(g.state.phase).toBe('pre_roll');
     expect(g.state.current).toBe('p0');
     act(g, 'p0', { type: 'roll' }, 1, 2);
@@ -66,6 +68,8 @@ describe('7.2 Turn flow', () => {
     rollFrom(g, 'p0', 0, 1, 2); // -> 3 p02
     expect(getLegalActions(g.map, g.state, 'p0').map((a) => a.type)).not.toContain('end_turn');
     act(g, 'p0', { type: 'decline_buy' });
+    act(g, 'p0', { type: 'auction_withdraw' });
+    act(g, 'p1', { type: 'auction_withdraw' });
     expect(g.state.current).toBe('p0');
     act(g, 'p0', { type: 'end_turn' });
     expect(g.state.current).toBe('p1');

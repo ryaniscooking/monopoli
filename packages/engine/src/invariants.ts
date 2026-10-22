@@ -35,6 +35,18 @@ export function checkInvariants(map: ResolvedMap, s: GameState, sec: GameSecrets
     if (prop.owner === null && (prop.mortgaged || prop.buildings > 0))
       err(`${id}: bank-owned but mortgaged or built`);
     if (prop.mortgaged && prop.buildings > 0) err(`${id}: mortgaged with buildings`);
+    const tile = map.byId[id];
+    if (prop.buildings > 0) {
+      if (tile?.type !== 'property') err(`${id}: buildings on a non-property tile`);
+      else if (
+        !map.groups[tile.group].every((g) => {
+          const other = s.properties[g];
+          return other?.owner === prop.owner && !other.mortgaged;
+        })
+      ) {
+        err(`${id}: buildings without the full unmortgaged color set`);
+      }
+    }
     if (prop.buildings === 5) hotelsInPlay++;
     else housesInPlay += prop.buildings;
   }
@@ -65,12 +77,33 @@ export function checkInvariants(map: ResolvedMap, s: GameState, sec: GameSecrets
     if (pend.amount <= 0) err('debt: non-positive amount');
   } else if (pend?.kind === 'buy') {
     if (s.properties[pend.tile]?.owner !== null) err('buy: tile is already owned');
+  } else if (pend?.kind === 'auction') {
+    for (const id of pend.active) {
+      if (s.players.find((p) => p.id === id)?.bankrupt !== false) err(`auction: ${id} cannot bid`);
+    }
+    if (pend.highBidder) {
+      const hb = s.players.find((p) => p.id === pend.highBidder);
+      if (!hb || hb.cash < pend.highBid) err('auction: high bidder cannot cover the bid');
+      if (!pend.active.includes(pend.highBidder)) err('auction: high bidder withdrew');
+    }
   }
+
+  const outgoing = new Set<string>();
+  for (const t of s.trades) {
+    if (outgoing.has(t.from)) err(`${t.from}: more than one open offer`);
+    outgoing.add(t.from);
+    for (const id of [t.from, t.to]) {
+      if (s.players.find((p) => p.id === id)?.bankrupt !== false)
+        err(`trade ${t.id}: ${id} not in game`);
+    }
+  }
+  if (new Set(s.auctionQueue).size !== s.auctionQueue.length) err('auction queue has duplicates');
 
   const alive = s.players.filter((p) => !p.bankrupt);
   if (s.phase === 'game_over') {
-    if (alive.length !== 1 || s.winner !== alive[0]?.id)
-      err('game over without exactly one winner');
+    if (!s.winner || !alive.some((p) => p.id === s.winner)) err('game over without a winner');
+    if (s.endReason === 'last_standing' && alive.length !== 1)
+      err('last standing but others remain');
   } else {
     if (alive.length < 2) err('game continues with fewer than two players');
     if (s.players.find((p) => p.id === s.current)?.bankrupt) err('current player is bankrupt');

@@ -13,12 +13,21 @@ describe('7.3 Landing outcomes', () => {
     expect(g.state.pending).toBeNull();
   });
 
-  it('R-020 declining leaves the property with the bank (auction comes in Phase 3)', () => {
+  it('R-020 declining starts an auction; without auctionOnDecline the tile stays with the bank', () => {
     const g = setup();
     rollFrom(g, 'p0', 0, 1, 2);
     act(g, 'p0', { type: 'decline_buy' });
-    expect(g.state.properties.p02?.owner).toBeNull();
-    expect(P(g, 'p0').cash).toBe(1500);
+    expect(g.state.pending).toMatchObject({
+      kind: 'auction',
+      item: { type: 'property', tile: 'p02' },
+    });
+
+    const h = setup({ house: { auctionOnDecline: false } });
+    rollFrom(h, 'p0', 0, 1, 2);
+    act(h, 'p0', { type: 'decline_buy' });
+    expect(h.state.pending).toBeNull();
+    expect(h.state.properties.p02?.owner).toBeNull();
+    expect(P(h, 'p0').cash).toBe(1500);
   });
 
   it('R-020 buying is not offered without enough cash', () => {

@@ -12,7 +12,7 @@ import {
   type SeatInit,
 } from './types';
 
-export const STATE_SCHEMA_VERSION = 1;
+export const STATE_SCHEMA_VERSION = 2;
 
 /** R-001 .. R-004: a new game with shuffled decks and the roll-off for first player. */
 export function createGame(
@@ -43,6 +43,7 @@ export function createGame(
     jailCardIds: [],
     bankrupt: false,
     connected: true,
+    timeouts: 0,
   }));
 
   // R-004: everyone rolls; highest total starts, tied leaders re-roll.
@@ -91,6 +92,11 @@ export function createGame(
     endsAt: settings.timeLimitMin > 0 ? now + settings.timeLimitMin * 60_000 : null,
     lastRoundPending: false,
     winner: null,
+    endReason: null,
+    trades: [],
+    tradeSeq: 1,
+    proposalsThisTurn: {},
+    auctionQueue: [],
   };
 
   const events: GameEvent[] = [

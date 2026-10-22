@@ -5,15 +5,18 @@
 import { parseArgs } from 'node:util';
 import {
   applyAction,
+  botsToAct,
   checkInvariants,
   createGame,
   createSeededRng,
   decide,
-  getActingPlayer,
   MoneyLedger,
   OFFICIAL_SETTINGS,
   resolveMap,
+  somethingDue,
+  type Action,
   type BotLevel,
+  type PlayerId,
   type ResolvedMap,
   type SeatInit,
 } from '@monopoli/engine';
@@ -61,23 +64,31 @@ function runGame(map: ResolvedMap, seed: number) {
     kind: 'bot',
     botLevel,
   }));
-  let { state, secrets } = createGame(map, OFFICIAL_SETTINGS, seats, rng, 0);
+  let now = 0;
+  let { state, secrets } = createGame(map, OFFICIAL_SETTINGS, seats, rng, now);
   const ledger = new MoneyLedger(state);
   let turns = 1;
-  const maxSteps = maxTurns * 200;
+  const maxSteps = maxTurns * 300;
 
   for (let step = 0; step < maxSteps; step++) {
     if (state.phase === 'game_over') return { turns, winner: state.winner, violation: null };
     if (turns >= maxTurns) return { turns, winner: null, violation: null };
-    const actor = getActingPlayer(state);
-    if (!actor) return { turns, winner: null, violation: ['no acting player'] };
-    const level = state.players.find((p) => p.id === actor)?.botLevel ?? 'easy';
+    now += 500; // simulated clock for auction and trade timers
+    const actor = botsToAct(map, state)[0];
     let errors: string[];
     try {
-      const action = decide({ map, state }, actor, level, rng);
-      const res = applyAction({ map, rng, now: 0 }, state, secrets, actor, action);
+      let action: Action = { type: 'system_timeout' };
+      let who: PlayerId | 'system' = 'system';
+      if (actor) {
+        const level = state.players.find((p) => p.id === actor)?.botLevel ?? 'easy';
+        action = decide({ map, state }, actor, level, rng);
+        who = actor;
+      } else if (!somethingDue(state, now)) {
+        return { turns, winner: null, violation: ['no bot has anything to do'], step };
+      }
+      const res = applyAction({ map, rng, now }, state, secrets, who, action);
       if (!res.ok) {
-        errors = [`illegal bot action ${JSON.stringify(action)}: ${res.error.message}`];
+        errors = [`illegal ${who} action ${JSON.stringify(action)}: ${res.error.message}`];
       } else {
         state = res.state;
         secrets = res.secrets;

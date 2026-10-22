@@ -5,8 +5,10 @@ import { act, build, own, P, rollFrom, setup, stack, transfers } from './helpers
 describe('7.9 Debt and bankruptcy', () => {
   it('R-080 owing more than your cash opens a debt; raise cash, then pay', () => {
     const g = setup();
-    own(g, 'p1', 'p03');
+    own(g, 'p1', 'p03', 'p04', 'p05');
     build(g, 'p03', 2); // rent 90
+    build(g, 'p04', 2);
+    build(g, 'p05', 2);
     own(g, 'p0', 'p01', 'p02');
     P(g, 'p0').cash = 40;
     rollFrom(g, 'p0', 0, 2, 4);
@@ -31,10 +33,12 @@ describe('7.9 Debt and bankruptcy', () => {
 
   it('R-081 / R-064 bankruptcy to a player hands over everything; mortgaged tiles cost 10%', () => {
     const g = setup({ players: 3 });
-    own(g, 'p1', 'p03');
+    own(g, 'p1', 'p03', 'p04', 'p05');
     build(g, 'p03', 2);
-    own(g, 'p0', 'p05', 'p06');
-    g.state.properties.p05!.mortgaged = true; // mortgage 60 -> interest 6
+    build(g, 'p04', 2);
+    build(g, 'p05', 2);
+    own(g, 'p0', 'p08', 'p09');
+    g.state.properties.p08!.mortgaged = true; // mortgage 80 -> interest 8
     P(g, 'p0').cash = 30;
     P(g, 'p0').jailCardIds = ['chance08'];
     P(g, 'p0').jailCards = 1;
@@ -44,11 +48,11 @@ describe('7.9 Debt and bankruptcy', () => {
     rollFrom(g, 'p0', 0, 2, 4);
     const ev = act(g, 'p0', { type: 'declare_bankruptcy' });
     expect(P(g, 'p0')).toMatchObject({ bankrupt: true, cash: 0, jailCards: 0 });
-    expect(g.state.properties.p05).toMatchObject({ owner: 'p1', mortgaged: true });
-    expect(g.state.properties.p06?.owner).toBe('p1');
+    expect(g.state.properties.p08).toMatchObject({ owner: 'p1', mortgaged: true });
+    expect(g.state.properties.p09?.owner).toBe('p1');
     expect(P(g, 'p1').jailCards).toBe(1);
-    expect(P(g, 'p1').cash).toBe(1500 + 30 - 6);
-    expect(transfers(ev).map((t) => t.reason)).toEqual(['bankruptcy', 'mortgage_interest:p05']);
+    expect(P(g, 'p1').cash).toBe(1500 + 30 - 8);
+    expect(transfers(ev).map((t) => t.reason)).toEqual(['bankruptcy', 'mortgage_interest:p08']);
     expect(g.state.current).toBe('p1');
   });
 

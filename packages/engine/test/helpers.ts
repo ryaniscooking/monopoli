@@ -73,8 +73,19 @@ export function setup(opts: SetupOptions = {}): G {
 
 /** Apply an action with scripted dice; fails the test if it is rejected or breaks an invariant. */
 export function act(g: G, actor: PlayerId, action: Action, ...faces: number[]): GameEvent[] {
+  return actAt(g, 0, actor, action, ...faces);
+}
+
+/** Like act(), at a given clock time (auction timers, trade expiry, time limit). */
+export function actAt(
+  g: G,
+  now: number,
+  actor: PlayerId | 'system',
+  action: Action,
+  ...faces: number[]
+): GameEvent[] {
   const res = applyAction(
-    { map: g.map, rng: diceRng(faces), now: 0 },
+    { map: g.map, rng: diceRng(faces), now },
     g.state,
     g.secrets,
     actor,
@@ -88,7 +99,7 @@ export function act(g: G, actor: PlayerId, action: Action, ...faces: number[]): 
   return res.events;
 }
 
-export function tryAct(g: G, actor: PlayerId, action: Action, ...faces: number[]) {
+export function tryAct(g: G, actor: PlayerId | 'system', action: Action, ...faces: number[]) {
   return applyAction(
     { map: g.map, rng: diceRng(faces), now: 0 },
     g.state,
@@ -118,12 +129,14 @@ export function own(g: G, owner: PlayerId, ...tiles: string[]): void {
   }
 }
 
-/** Put buildings on a tile and take them from the bank (keeps the invariants true). */
+/** Set a tile's buildings, moving the difference to/from the bank (keeps invariants true). */
 export function build(g: G, tile: string, buildings: 0 | 1 | 2 | 3 | 4 | 5): void {
   const prop = g.state.properties[tile];
   if (!prop) throw new Error(`no property ${tile}`);
-  if (buildings === 5) g.state.bank.hotels -= 1;
-  else g.state.bank.houses -= buildings;
+  const houses = (n: number) => (n === 5 ? 0 : n);
+  const hotels = (n: number) => (n === 5 ? 1 : 0);
+  g.state.bank.houses += houses(prop.buildings) - houses(buildings);
+  g.state.bank.hotels += hotels(prop.buildings) - hotels(buildings);
   prop.buildings = buildings;
 }
 

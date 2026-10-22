@@ -1,3 +1,4 @@
+import type { PlayerStats } from './stats';
 import type { CardEffect, ColorGroup, DeckId, MapConfig } from './map/schema';
 
 export type {
@@ -209,6 +210,8 @@ export interface GameState {
    * other player just turned down. Optional: older saves and live games may not have it.
    */
   declinedOffers?: DeclinedOffer[];
+  /** Running totals for the game-over screen. Optional: older saves may not have it. */
+  stats?: Partial<Record<PlayerId, PlayerStats>>;
 }
 
 export interface DeclinedOffer {

@@ -5,6 +5,12 @@ export interface SettingsState {
   speed: 'normal' | 'fast';
   reducedMotion: boolean;
   installHintDismissed: boolean;
+  /** Sound effects on (spec 14). */
+  sound: boolean;
+  /** When zoomed in, the board camera follows the moving token (spec 12.4). */
+  followCamera: boolean;
+  /** Small letters on color groups for color-blind players (spec 12.9). */
+  groupMarkers: boolean;
   set: (patch: Partial<Omit<SettingsState, 'set'>>) => void;
 }
 
@@ -42,6 +48,9 @@ export const useSettings = create<SettingsState>()(
       speed: 'normal',
       reducedMotion: prefersReducedMotion,
       installHintDismissed: false,
+      sound: true,
+      followCamera: true,
+      groupMarkers: true,
       set: (patch) => set(patch),
     }),
     { name: 'monopoli:settings', storage: safeStorage },

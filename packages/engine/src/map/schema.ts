@@ -103,7 +103,22 @@ export const MapConfigSchema = z.object({
   }),
   tiles: z.array(TileSchema).length(40),
   decks: z.object({ chance: DeckConfigSchema, chest: DeckConfigSchema }),
-  tokens: z.array(z.object({ id: z.string().min(1), name, icon: z.string().min(1) })).min(8),
+  tokens: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        name,
+        /** Emoji fallback (and used in text such as the log). */
+        icon: z.string().min(1),
+        /** Flat silhouette: SVG path data in a 24x24 box, drawn in the player's color. */
+        svg: z
+          .string()
+          .max(4000)
+          .regex(/^[MmLlHhVvCcSsQqTtAaZz0-9.,\s-]+$/, 'path data only')
+          .optional(),
+      }),
+    )
+    .min(8),
   botNames: z.array(name).min(12),
 });
 

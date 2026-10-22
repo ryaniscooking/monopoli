@@ -1,7 +1,8 @@
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Share, SquarePlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useSettings } from '../store/settings';
+import { useUi } from '../store/ui';
 import { en } from '../strings/en';
 import { Button } from './ui';
 
@@ -23,25 +24,43 @@ function isIosSafariBrowser(): boolean {
   const ua = navigator.userAgent;
   const ios =
     /iPhone|iPad|iPod/.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  // Chrome, Firefox and Edge on iOS put "Add to Home Screen" elsewhere; the steps are for Safari.
+  const otherBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
   const standalone =
     (navigator as Navigator & { standalone?: boolean }).standalone === true ||
     matchMedia('(display-mode: standalone)').matches;
-  return ios && !standalone;
+  return ios && !otherBrowser && !standalone;
 }
 
-/** First visit in iPhone Safari: how to install (spec 13). */
+/** First visit in iPhone Safari, on the home screen only: how to install (spec 13). */
 export function InstallHint() {
   const dismissed = useSettings((s) => s.installHintDismissed);
   const set = useSettings((s) => s.set);
+  const screen = useUi((s) => s.screen);
   const [show] = useState(() => isIosSafariBrowser());
-  if (!show || dismissed) return null;
+  if (!show || dismissed || screen !== 'home') return null;
+  const i = en.install;
   return (
-    <div className="fixed bottom-3 left-1/2 z-50 flex w-[min(520px,90vw)] -translate-x-1/2 items-center gap-3 rounded-xl bg-white p-3 text-sm text-ink shadow-lg">
+    <div
+      data-testid="install-hint"
+      className="fixed bottom-3 left-1/2 z-50 flex w-[min(560px,92vw)] -translate-x-1/2 items-center gap-3 rounded-xl bg-white p-3 text-sm text-ink shadow-lg"
+    >
       <div className="flex-1">
-        <div className="font-semibold">{en.install.title}</div>
-        <div className="opacity-80">{en.install.body}</div>
+        <div className="font-semibold">{i.title}</div>
+        <ol className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+          <li className="flex items-center gap-1">
+            <b>1.</b> {i.step1} <Share size={16} aria-label="Share" className="text-blue-600" />
+          </li>
+          <li className="flex items-center gap-1">
+            <b>2.</b> {i.step2} <SquarePlus size={16} aria-hidden />
+          </li>
+          <li className="flex items-center gap-1">
+            <b>3.</b> {i.step3}
+          </li>
+        </ol>
+        <div className="mt-1 text-[12px] opacity-70">{i.why}</div>
       </div>
-      <Button onClick={() => set({ installHintDismissed: true })}>{en.install.dismiss}</Button>
+      <Button onClick={() => set({ installHintDismissed: true })}>{i.dismiss}</Button>
     </div>
   );
 }

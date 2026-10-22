@@ -7,6 +7,7 @@ import { newSoloGame } from '../game/session';
 import { HouseRulesSheet } from './HouseRules';
 import { useSetup, useUi } from '../store/ui';
 import { en } from '../strings/en';
+import { TokenIcon } from '../components/TokenIcon';
 
 const s = en.setup;
 
@@ -74,6 +75,18 @@ export function SoloSetup() {
               </button>
             );
           })}
+        </div>
+        <div className="flex shrink-0 flex-col gap-1">
+          <Button
+            data-testid="start-game"
+            className="w-full text-base"
+            onClick={() =>
+              newSoloGame({ ...setup, mapId: map.id, token: token ?? null, color: color ?? null })
+            }
+          >
+            {s.start}
+          </Button>
+          {hasSave && <span className="text-[11px] leading-tight opacity-80">{s.replaceSave}</span>}
         </div>
       </div>
 
@@ -173,9 +186,9 @@ export function SoloSetup() {
                 title={t.name}
                 aria-label={t.name}
                 onClick={() => setup.update({ token: t.id })}
-                className={`h-10 w-10 rounded-full bg-white text-xl ${token === t.id ? 'ring-3 ring-accent' : 'opacity-70'}`}
+                className={`flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl ${token === t.id ? 'ring-3 ring-accent' : 'opacity-70'}`}
               >
-                {t.icon}
+                <TokenIcon token={t} color={color ?? '#333'} size={26} />
               </button>
             ))}
           </div>
@@ -193,18 +206,6 @@ export function SoloSetup() {
               />
             ))}
           </div>
-        </div>
-        <div className="mt-auto flex items-center gap-2">
-          <Button
-            data-testid="start-game"
-            className="px-6 text-base"
-            onClick={() =>
-              newSoloGame({ ...setup, mapId: map.id, token: token ?? null, color: color ?? null })
-            }
-          >
-            {s.start}
-          </Button>
-          {hasSave && <span className="text-xs opacity-70">{s.replaceSave}</span>}
         </div>
       </div>
       <HouseRulesSheet

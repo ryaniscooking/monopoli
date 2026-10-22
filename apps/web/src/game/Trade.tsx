@@ -15,6 +15,7 @@ import { useUi } from '../store/ui';
 import { en } from '../strings/en';
 import { useNow } from '../components/useNow';
 import { Deed } from './Deed';
+import { GroupSwatch } from '../board/GroupMark';
 import { act, useTable } from './table';
 
 const tr = en.trade;
@@ -107,12 +108,7 @@ function BundleEditor({
                   checked={bundle.tiles.includes(id)}
                   onChange={() => toggle(id)}
                 />
-                <span
-                  className="h-3 w-1.5 shrink-0 rounded-sm"
-                  style={{
-                    background: t?.type === 'property' ? `var(--g-${t.group})` : 'var(--m-primary)',
-                  }}
-                />
+                <GroupSwatch group={t?.type === 'property' ? t.group : null} />
                 <span className="truncate">{t?.name}</span>
                 {state.properties[id]?.mortgaged && (
                   <span className="text-[10px] opacity-60">M</span>
@@ -268,12 +264,7 @@ function TileChips({ tiles, onOpen }: { tiles: TileId[]; onOpen: (tile: TileId) 
             onClick={() => onOpen(id)}
             className="m-0.5 inline-flex items-center gap-1 rounded border border-black/15 bg-white px-1 py-0.5 text-[11px] font-semibold"
           >
-            <span
-              className="inline-block h-3 w-1.5 rounded-sm"
-              style={{
-                background: t?.type === 'property' ? `var(--g-${t.group})` : 'var(--m-primary)',
-              }}
-            />
+            <GroupSwatch group={t?.type === 'property' ? t.group : null} />
             {t?.name ?? id}
           </button>
         );

@@ -1,3 +1,4 @@
+import { GroupMark } from './GroupMark';
 import {
   formatMoney,
   type PropertyState,
@@ -152,9 +153,14 @@ function TileImpl({ map, tile, prop, ownerColor, u, highlight, goAmount }: Props
       >
         {tile.type === 'property' ? (
           <div
-            className="flex w-full shrink-0 items-center justify-center gap-[1px] border-b border-black/30"
+            className="relative flex w-full shrink-0 items-center justify-center gap-[1px] border-b border-black/30"
             style={{ height: 0.32 * u, background: `var(--g-${tile.group})` }}
           >
+            <GroupMark
+              group={tile.group}
+              className="absolute top-1/2 left-[3%] -translate-y-1/2 leading-none"
+              style={{ fontSize: u * 0.22 }}
+            />
             {prop && prop.buildings > 0 && prop.buildings < 5
               ? Array.from({ length: prop.buildings }, (_, i) => (
                   <span

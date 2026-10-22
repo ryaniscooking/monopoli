@@ -16,6 +16,7 @@ import { mortgage, unmortgage } from './rules/mortgage';
 import { runTimeouts } from './rules/timers';
 import { acceptTrade, declineTrade, proposeTrade, removeTrade } from './rules/trade';
 import { advanceTurn, doRoll } from './rules/turn';
+import { tallyStats } from './stats';
 import type {
   Action,
   ApplyResult,
@@ -81,6 +82,8 @@ export function applyAction(
     c.s.settings.turnTimerSec > 0 && c.s.phase !== 'game_over'
       ? c.now + c.s.settings.turnTimerSec * 1000
       : null;
+
+  c.s.stats = tallyStats(c.s.stats, c.ev);
 
   return { ok: true, state: c.s, secrets: c.sec, events: c.ev };
 }

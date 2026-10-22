@@ -5,6 +5,7 @@ import { Money } from '../components/ui';
 import { en } from '../strings/en';
 import { ReactionBar, ReactionFloat } from './Reactions';
 import { useTable } from './table';
+import { TokenIcon } from '../components/TokenIcon';
 
 /** Left rail (spec 12.3): token, name, cash, owned groups, jail, bot badge, turn glow. */
 export function PlayerRail() {
@@ -35,7 +36,7 @@ export function PlayerRail() {
             style={{ borderLeft: `5px solid ${p.color}` }}
           >
             <div className="flex items-center gap-1 text-[13px] leading-tight">
-              <span className="text-base">{token?.icon}</span>
+              <TokenIcon token={token} color={p.color} size={18} />
               <span className="min-w-0 flex-1 truncate font-semibold">
                 {p.name}
                 {p.id === me && (

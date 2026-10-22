@@ -5,10 +5,12 @@ import { formatMoney } from '@monopoli/engine';
 import { useNow } from '../components/useNow';
 import { useTable } from '../game/table';
 import { en } from '../strings/en';
+import { useSettings } from '../store/settings';
 import { useUi } from '../store/ui';
 import { Dice } from './Dice';
 import { tileRect, tokenSpot } from './geometry';
 import { Tile } from './Tile';
+import { TokenIcon } from '../components/TokenIcon';
 
 interface Camera {
   s: number;
@@ -30,6 +32,8 @@ export function Board() {
   const dice = useTable((s) => s.dice);
   const rolling = useTable((s) => s.rolling);
   const card = useTable((s) => s.card);
+  const floats = useTable((s) => s.floats);
+  const reduced = useSettings((st) => st.reducedMotion);
   const selectTile = useUi((s) => s.selectTile);
   const selected = useUi((s) => s.selectedTile);
 
@@ -127,6 +131,23 @@ export function Board() {
       pinch: { scaleBounds: { min: 1, max: 3 }, from: () => [camRef.current.s, 0] },
     },
   );
+
+  // Camera follow (spec 12.4): while zoomed in, keep the token that is moving in view.
+  const follow = useSettings((st) => st.followCamera);
+  const lastPos = useRef(pos);
+  useEffect(() => {
+    const before = lastPos.current;
+    lastPos.current = pos;
+    if (!follow || !view || camRef.current.s <= 1.05) return;
+    const mover = view.players.find((p) => pos[p.id] !== undefined && pos[p.id] !== before[p.id]);
+    const at = mover ? pos[mover.id] : undefined;
+    if (!mover || at === undefined) return;
+    const spot = tokenSpot(at, false, 0, 1);
+    const s = camRef.current.s;
+    setSmooth(true);
+    setCam(fit({ s, x: side / 2 - spot.x * u * s, y: side / 2 - spot.y * u * s }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only token moves should pan
+  }, [pos]);
 
   const owners = useMemo(() => {
     const colors: Record<string, string | null> = {};
@@ -239,7 +260,37 @@ export function Board() {
                 animate={{ left: spot.x * u, top: spot.y * u, scale: current ? 1.12 : 1 }}
                 transition={{ duration: 0.13, ease: 'easeOut' }}
               >
-                {token?.icon ?? '●'}
+                {/* A little hop on every step (keyed by the drawn position). */}
+                <motion.div
+                  key={pos[p.id] ?? p.position}
+                  initial={reduced ? false : { y: -tokenSize * 0.35 }}
+                  animate={{ y: 0 }}
+                  transition={{ type: 'spring', stiffness: 700, damping: 18 }}
+                >
+                  <TokenIcon token={token} color={p.color} size={tokenSize * 0.72} />
+                </motion.div>
+                <AnimatePresence>
+                  {floats
+                    .filter((f) => f.player === p.id)
+                    .slice(-1)
+                    .map((f) => (
+                      <motion.div
+                        key={f.id}
+                        data-testid="board-float"
+                        className={`pointer-events-none absolute left-1/2 rounded bg-white/95 px-1 font-bold whitespace-nowrap shadow ${
+                          f.amount > 0 ? 'text-green-700' : 'text-red-700'
+                        }`}
+                        style={{ fontSize: Math.max(9, u * 0.28), bottom: '100%', x: '-50%' }}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: -2 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.35 }}
+                      >
+                        {f.amount > 0 ? '+' : '−'}
+                        {formatMoney(map, Math.abs(f.amount), { compact: true })}
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
               </motion.div>
             );
           })}

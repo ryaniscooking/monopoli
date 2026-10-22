@@ -6,6 +6,7 @@ import { MAPS } from '../game/maps';
 import { lobbyActions, useLobby } from '../online/lobby';
 import { en } from '../strings/en';
 import { HouseRulesSheet } from './HouseRules';
+import { TokenIcon } from '../components/TokenIcon';
 
 const l = en.lobby;
 
@@ -71,7 +72,7 @@ export function Lobby() {
                 className="flex items-center gap-2 rounded-lg bg-tile px-2 py-1 text-sm text-ink"
                 style={{ borderLeft: `5px solid ${s.color}` }}
               >
-                <span className="text-lg">{token?.icon}</span>
+                <TokenIcon token={token} color={s.color} size={22} />
                 <span className="min-w-0 flex-1 truncate font-semibold">
                   {s.nickname}
                   {s.user_id === userId && (
@@ -177,9 +178,9 @@ export function Lobby() {
                     aria-label={t.name}
                     disabled={usedTokens.has(t.id) || busy}
                     onClick={() => void lobbyActions.setMe({ token: t.id })}
-                    className={`h-9 w-9 rounded-full bg-white text-lg disabled:opacity-25 ${me.token === t.id ? 'ring-3 ring-accent' : ''}`}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg disabled:opacity-25 ${me.token === t.id ? 'ring-3 ring-accent' : ''}`}
                   >
-                    {t.icon}
+                    <TokenIcon token={t} color={me.color} size={24} />
                   </button>
                 ))}
               </div>

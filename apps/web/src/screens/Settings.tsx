@@ -40,6 +40,36 @@ export function Settings() {
             />
             {s.reducedMotion}
           </label>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              data-testid="setting-sound"
+              className="h-5 w-5"
+              checked={settings.sound}
+              onChange={(e) => settings.set({ sound: e.target.checked })}
+            />
+            {s.sound}
+          </label>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              data-testid="setting-followCamera"
+              className="h-5 w-5"
+              checked={settings.followCamera}
+              onChange={(e) => settings.set({ followCamera: e.target.checked })}
+            />
+            {s.followCamera}
+          </label>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              data-testid="setting-groupMarkers"
+              className="h-5 w-5"
+              checked={settings.groupMarkers}
+              onChange={(e) => settings.set({ groupMarkers: e.target.checked })}
+            />
+            {s.groupMarkers}
+          </label>
           <p className="mt-3 text-xs opacity-70">{s.storage}</p>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import { GroupMark } from '../board/GroupMark';
+import { LIGHT_GROUPS } from '../board/groups';
 import { formatMoney, type GameState, type ResolvedMap, type ResolvedTile } from '@monopoli/engine';
 import { X } from 'lucide-react';
 import { en } from '../strings/en';
@@ -53,7 +55,7 @@ export function Deed({
   const owner = prop?.owner ? state.players.find((p) => p.id === prop.owner) : null;
   const money = (n: number) => formatMoney(map, n);
   const header = tile.type === 'property' ? `var(--g-${tile.group})` : 'var(--m-primary)';
-  const darkText = tile.type === 'property' && ['yellow', 'lightblue'].includes(tile.group);
+  const darkText = tile.type === 'property' && LIGHT_GROUPS.includes(tile.group);
 
   return (
     <div data-testid="deed" className="overflow-hidden rounded-lg bg-white text-ink shadow">
@@ -61,6 +63,9 @@ export function Deed({
         className={`relative m-1.5 mb-0 border border-black/20 px-6 py-1 text-center ${darkText ? 'text-ink' : 'text-white'}`}
         style={{ background: header }}
       >
+        {tile.type === 'property' && (
+          <GroupMark group={tile.group} className="absolute top-1 left-1.5 text-[11px]" />
+        )}
         {'price' in tile && (
           <div className="text-[9px] font-semibold tracking-[0.15em] uppercase opacity-80">
             {t.titleDeed}

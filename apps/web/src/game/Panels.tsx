@@ -1,6 +1,8 @@
 import { formatMoney, netWorth, type Action } from '@monopoli/engine';
+import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Modal, SectionLabel } from '../components/ui';
+import { useSettings } from '../store/settings';
 import { useSetup, useUi } from '../store/ui';
 import { en } from '../strings/en';
 import { useMyActions } from './useMyActions';
@@ -139,6 +141,8 @@ export function MenuSheet() {
   const openSheet = useUi((s) => s.openSheet);
   const go = useUi((s) => s.go);
   const [confirm, setConfirm] = useState(false);
+  const sound = useSettings((st) => st.sound);
+  const setSound = useSettings((st) => st.set);
   const m = t.menuSheet;
   return (
     <Modal open={sheet === 'menu'} onClose={() => openSheet(null)} className="w-[min(360px,90vw)]">
@@ -147,6 +151,15 @@ export function MenuSheet() {
         <Button onClick={() => openSheet(null)}>{m.resume}</Button>
         <Button variant="light" onClick={() => go('settings')}>
           {m.settings}
+        </Button>
+        <Button
+          data-testid="menu-sound"
+          variant="light"
+          className="flex items-center justify-center gap-2"
+          onClick={() => setSound({ sound: !sound })}
+        >
+          {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          {sound ? m.soundOn : m.soundOff}
         </Button>
         <Button data-testid="menu-exit" variant="light" onClick={exitGame}>
           {online ? m.exitOnline : m.exit}
@@ -181,7 +194,6 @@ export function GameOver() {
   const map = useTable((s) => s.map);
   const view = useTable((s) => s.view);
   const busy = useTable((s) => s.busy);
-  const rent = useTable((s) => s.rentCollected);
   const online = useTable((s) => s.online);
   const go = useUi((s) => s.go);
   const setup = useSetup();
@@ -199,17 +211,24 @@ export function GameOver() {
     <Modal open={view.phase === 'game_over' && !busy} testId="game-over">
       <div className="text-center">
         <div className="text-sm font-semibold uppercase opacity-60">{o.title}</div>
-        <div className="mb-2 text-2xl font-black text-primary">
+        <div className="text-2xl font-black text-primary">
           {winner ? o.winner(winner.name) : ''}
         </div>
+        {view.endReason && (
+          <div className="mb-2 text-xs opacity-60">{o.reason[view.endReason]}</div>
+        )}
       </div>
-      <table className="w-full text-sm">
+      <table data-testid="game-stats" className="w-full text-[12px] [&_td]:px-1 [&_th]:px-1">
         <thead>
           <tr className="text-left text-[11px] uppercase opacity-60">
             <th />
             <th className="text-right">{o.netWorth}</th>
             <th className="text-right">{o.rent}</th>
+            <th className="text-right">{o.rentPaid}</th>
             <th className="text-right">{o.owned}</th>
+            <th className="text-right">{o.built}</th>
+            <th className="text-right">{o.jailed}</th>
+            <th className="text-right">{o.turns}</th>
           </tr>
         </thead>
         <tbody>
@@ -221,10 +240,16 @@ export function GameOver() {
               <td className="tabular text-right">
                 {p.bankrupt ? t.bankrupt : money(netWorth(map, view, p.id))}
               </td>
-              <td className="tabular text-right">{money(rent[p.id] ?? 0)}</td>
+              <td className="tabular text-right">
+                {money(view.stats?.[p.id]?.rentCollected ?? 0)}
+              </td>
+              <td className="tabular text-right">{money(view.stats?.[p.id]?.rentPaid ?? 0)}</td>
               <td className="tabular text-right">
                 {map.buyable.filter((id) => view.properties[id]?.owner === p.id).length}
               </td>
+              <td className="tabular text-right">{view.stats?.[p.id]?.buildingsBuilt ?? 0}</td>
+              <td className="tabular text-right">{view.stats?.[p.id]?.timesJailed ?? 0}</td>
+              <td className="tabular text-right">{view.stats?.[p.id]?.turns ?? 0}</td>
             </tr>
           ))}
         </tbody>

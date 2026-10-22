@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import type { TableClient } from '../clients/GameClient';
 import { timeScale } from '../store/settings';
 import { describeEvent } from './describe';
+import { playSfx } from '../audio/sfx';
 
 export interface MoneyFloat {
   id: number;
@@ -34,7 +35,6 @@ export interface TableState {
   landed: number | null;
   floats: MoneyFloat[];
   log: { id: number; text: string }[];
-  rentCollected: Partial<Record<PlayerId, number>>;
   error: string | null;
   /** Online (RemoteGameClient) rather than solo. */
   online: boolean;
@@ -52,7 +52,6 @@ const empty = (): TableState => ({
   landed: null,
   floats: [],
   log: [],
-  rentCollected: {},
   error: null,
   online: false,
 });
@@ -154,8 +153,10 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
   const map = get().map;
   if (!map) return;
   log(describeEvent(map, state, e));
+  const me = get().client?.me;
   switch (e.type) {
     case 'dice_rolled':
+      playSfx('dice');
       set({ rolling: true });
       await wait(650);
       set({ rolling: false, dice: e.dice });
@@ -163,11 +164,13 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
       return;
     case 'moved':
       if (e.mode === 'jump') {
+        playSfx('step');
         set((s) => ({ pos: { ...s.pos, [e.player]: e.path.at(-1) } }));
         await wait(400);
         return;
       }
       for (const step of e.path) {
+        playSfx('step');
         set((s) => ({ pos: { ...s.pos, [e.player]: step } }));
         await wait(150);
       }
@@ -179,6 +182,7 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
     case 'card_drawn': {
       const card = map.cards[e.card];
       if (!card) return;
+      playSfx('card');
       set({
         card: {
           deck: e.deck,
@@ -196,28 +200,53 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
       await wait(120);
       return;
     case 'rent_paid':
-      set((s) => ({
-        rentCollected: { ...s.rentCollected, [e.to]: (s.rentCollected[e.to] ?? 0) + e.amount },
-      }));
+      playSfx(e.to === me ? 'rentReceived' : e.from === me ? 'rentPaid' : 'coin');
       return;
     case 'jailed':
+      playSfx('jail');
       await wait(500);
       return;
+    case 'passed_go':
+      playSfx('coin');
+      return;
+    case 'tax_paid':
+      if (e.player === me) playSfx('rentPaid');
+      return;
+    case 'mortgaged':
+    case 'unmortgaged':
+      playSfx('mortgage');
+      return;
     case 'bought':
-    case 'bankrupt':
-    case 'auction_ended':
-    case 'trade_accepted':
+      playSfx('buy');
       await wait(300);
+      return;
+    case 'bankrupt':
+      playSfx('bankrupt');
+      await wait(300);
+      return;
+    case 'auction_ended':
+      playSfx('gavel');
+      await wait(300);
+      return;
+    case 'trade_accepted':
+      playSfx('buy');
+      await wait(300);
+      return;
+    case 'game_over':
+      playSfx(e.winner === me ? 'win' : 'bankrupt');
       return;
     case 'built':
     case 'sold_building':
+      playSfx(e.type === 'built' ? 'build' : 'mortgage');
       set({ landed: map.byId[e.tile]?.index ?? null });
       await wait(250);
       return;
     case 'auction_bid':
+      playSfx('tick');
       await wait(120);
       return;
     case 'turn_started':
+      if (e.player === me) playSfx('turn');
       set({ landed: null });
       await wait(250);
       return;

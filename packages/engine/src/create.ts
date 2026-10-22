@@ -1,3 +1,4 @@
+import { tallyStats } from './stats';
 import { CLASSIC_BANK } from './map/classic';
 import { rollDie, shuffle, type Rng } from './rng';
 import {
@@ -104,5 +105,6 @@ export function createGame(
     { type: 'turn_order', rolls: rounds, first },
     { type: 'turn_started', player: first, round: 1 },
   ];
+  state.stats = tallyStats(undefined, events);
   return { state, secrets, events };
 }

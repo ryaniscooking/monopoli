@@ -1,10 +1,11 @@
+import type { BotLevel, RuleSettings } from '@monopoli/engine';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DEFAULT_MAP_ID } from '../game/maps';
 import { safeStorage } from './settings';
 
 export type Screen = 'home' | 'setup' | 'game' | 'settings' | 'howto';
-export type Sheet = null | 'properties' | 'log' | 'menu';
+export type Sheet = null | 'properties' | 'trade' | 'log' | 'menu';
 
 interface UiState {
   screen: Screen;
@@ -33,8 +34,13 @@ export interface SoloSetup {
   mapId: string;
   nickname: string;
   bots: number;
+  /** Level per bot seat (index 0 = first bot). */
+  botLevels: BotLevel[];
   token: string | null;
   color: string | null;
+  preset: RuleSettings['preset'];
+  /** House-rule overrides, used when preset is 'house'. */
+  house: Partial<RuleSettings>;
 }
 
 interface SetupState extends SoloSetup {
@@ -48,8 +54,11 @@ export const useSetup = create<SetupState>()(
       mapId: DEFAULT_MAP_ID,
       nickname: '',
       bots: 3,
+      botLevels: ['normal', 'normal', 'normal', 'normal', 'normal'],
       token: null,
       color: null,
+      preset: 'official',
+      house: {},
       update: (patch) => set(patch),
     }),
     { name: 'monopoli:setup', storage: safeStorage },

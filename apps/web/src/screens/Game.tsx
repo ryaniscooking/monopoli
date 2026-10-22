@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { Board } from '../board/Board';
 import { Button } from '../components/ui';
 import { ActionRail } from '../game/ActionRail';
-import { DebtPanel, GameOver, LogSheet, MenuSheet, PropertiesSheet } from '../game/Panels';
+import { AuctionPanel } from '../game/AuctionPanel';
+import { ManageSheet } from '../game/ManageSheet';
+import { DebtPanel, GameOver, LogSheet, MenuSheet } from '../game/Panels';
+import { TradeBanner, TradeSheet } from '../game/Trade';
 import { PlayerRail } from '../game/PlayerRail';
 import { useTable } from '../game/table';
 import { useUi } from '../store/ui';
@@ -40,7 +43,10 @@ export function Game() {
         <ActionRail />
       </div>
       <DebtPanel />
-      <PropertiesSheet />
+      <AuctionPanel />
+      <ManageSheet />
+      <TradeSheet />
+      <TradeBanner />
       <LogSheet />
       <MenuSheet />
       <GameOver />

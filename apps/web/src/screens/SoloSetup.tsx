@@ -4,6 +4,7 @@ import { Button, SectionLabel } from '../components/ui';
 import { applyTheme, getMap, MAPS } from '../game/maps';
 import { saveStore } from '../game/saves';
 import { newSoloGame } from '../game/session';
+import { HouseRulesSheet } from './HouseRules';
 import { useSetup, useUi } from '../store/ui';
 import { en } from '../strings/en';
 
@@ -14,6 +15,7 @@ export function SoloSetup() {
   const go = useUi((st) => st.go);
   const map = getMap(MAPS[setup.mapId] ? setup.mapId : 'myanmar');
   const [hasSave, setHasSave] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => {
     applyTheme(map);
@@ -89,9 +91,7 @@ export function SoloSetup() {
             />
           </label>
           <div>
-            <SectionLabel>
-              {s.bots} · {s.easy}
-            </SectionLabel>
+            <SectionLabel>{s.bots}</SectionLabel>
             <div className="flex items-center gap-2">
               <Button
                 variant="light"
@@ -113,6 +113,55 @@ export function SoloSetup() {
                 <Plus size={16} />
               </Button>
             </div>
+          </div>
+        </div>
+        <div>
+          <SectionLabel>{s.botLevel}</SectionLabel>
+          <div className="flex flex-col gap-1">
+            {Array.from({ length: setup.bots }, (_, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-sm">
+                <span className="w-12 opacity-70">Bot {i + 1}</span>
+                {(['easy', 'normal', 'hard'] as const).map((lvl) => (
+                  <Button
+                    key={lvl}
+                    data-testid={`bot-${i}-${lvl}`}
+                    variant={(setup.botLevels[i] ?? 'normal') === lvl ? 'primary' : 'light'}
+                    className="min-h-8 flex-1 px-1 text-[12px]"
+                    onClick={() => {
+                      const botLevels = [...setup.botLevels];
+                      botLevels[i] = lvl;
+                      setup.update({ botLevels });
+                    }}
+                  >
+                    {en.level[lvl]}
+                  </Button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <SectionLabel>{en.rules.title}</SectionLabel>
+          <div className="flex gap-1.5">
+            <Button
+              data-testid="rules-official"
+              variant={setup.preset === 'official' ? 'primary' : 'light'}
+              className="flex-1"
+              onClick={() => setup.update({ preset: 'official' })}
+            >
+              {en.rules.official}
+            </Button>
+            <Button
+              data-testid="rules-house"
+              variant={setup.preset === 'house' ? 'primary' : 'light'}
+              className="flex-1"
+              onClick={() => {
+                setup.update({ preset: 'house' });
+                setRulesOpen(true);
+              }}
+            >
+              {en.rules.house}…
+            </Button>
           </div>
         </div>
         <div>
@@ -145,9 +194,6 @@ export function SoloSetup() {
             ))}
           </div>
         </div>
-        <div className="text-xs opacity-70">
-          {s.official}. {s.houseSoon} {s.levelsSoon}
-        </div>
         <div className="mt-auto flex items-center gap-2">
           <Button
             data-testid="start-game"
@@ -161,6 +207,7 @@ export function SoloSetup() {
           {hasSave && <span className="text-xs opacity-70">{s.replaceSave}</span>}
         </div>
       </div>
+      <HouseRulesSheet open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>
   );
 }

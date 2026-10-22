@@ -87,6 +87,8 @@ export function startTable(client: LocalGameClient): void {
 
 export function stopTable(): void {
   generation++;
+  if (tickTimer) clearTimeout(tickTimer);
+  tickTimer = null;
   queue = [];
   draining = false;
   if (botTimer) clearTimeout(botTimer);
@@ -192,7 +194,17 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
       return;
     case 'bought':
     case 'bankrupt':
+    case 'auction_ended':
+    case 'trade_accepted':
       await wait(300);
+      return;
+    case 'built':
+    case 'sold_building':
+      set({ landed: map.byId[e.tile]?.index ?? null });
+      await wait(250);
+      return;
+    case 'auction_bid':
+      await wait(120);
       return;
     case 'turn_started':
       set({ landed: null });
@@ -203,13 +215,36 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
   }
 }
 
+let tickTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Wake up at the next deadline (auction timer, trade expiry, time limit) and apply the clock. */
+function scheduleTick(): void {
+  if (tickTimer) clearTimeout(tickTimer);
+  tickTimer = null;
+  const { client } = get();
+  const deadline = client?.nextDeadline() ?? null;
+  if (!client || deadline === null) return;
+  const gen = generation;
+  tickTimer = setTimeout(
+    () => {
+      tickTimer = null;
+      if (gen !== generation) return;
+      if (get().busy || !client.tick()) scheduleTick();
+    },
+    Math.max(0, deadline - Date.now()) + 50,
+  );
+}
+
 function scheduleBot(): void {
+  scheduleTick();
   if (botTimer) clearTimeout(botTimer);
   botTimer = null;
   const { client, view } = get();
   if (!client || !view || view.phase === 'game_over' || !client.botToAct()) return;
   const gen = generation;
-  const delay = 600 + Math.random() * 1000; // human-like pause (spec 9.4)
+  // Human-like pause (spec 9.4); quicker during auctions so bidding keeps moving.
+  const delay =
+    view.pending?.kind === 'auction' ? 300 + Math.random() * 500 : 600 + Math.random() * 1000;
   botTimer = setTimeout(() => {
     botTimer = null;
     if (gen !== generation || get().busy) return;

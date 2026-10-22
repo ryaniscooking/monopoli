@@ -1,5 +1,5 @@
 import { formatMoney, getActingPlayer, type Action } from '@monopoli/engine';
-import { List, Menu, Home as HomeIcon } from 'lucide-react';
+import { ArrowLeftRight, Home as HomeIcon, List, Menu } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '../components/ui';
 import { useUi } from '../store/ui';
@@ -75,7 +75,11 @@ export function ActionRail() {
   } else {
     primary = (
       <div data-testid="waiting" className="py-2 text-center text-[13px] opacity-85">
-        {acting === me ? t.yourMove : t.waiting(actingName)}
+        {view.pending?.kind === 'auction'
+          ? t.auctionRunning
+          : acting === me
+            ? t.yourMove
+            : t.waiting(actingName)}
       </div>
     );
   }
@@ -93,32 +97,26 @@ export function ActionRail() {
           />
         ) : null}
       </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        <Button
-          variant="secondary"
-          className="flex flex-col items-center gap-0 px-1 text-[11px]"
-          onClick={() => openSheet('properties')}
-        >
-          <HomeIcon size={16} />
-          {t.properties}
-        </Button>
-        <Button
-          variant="secondary"
-          className="flex flex-col items-center gap-0 px-1 text-[11px]"
-          onClick={() => openSheet('log')}
-        >
-          <List size={16} />
-          {t.log}
-        </Button>
-        <Button
-          data-testid="open-menu"
-          variant="secondary"
-          className="flex flex-col items-center gap-0 px-1 text-[11px]"
-          onClick={() => openSheet('menu')}
-        >
-          <Menu size={16} />
-          {t.menu}
-        </Button>
+      <div className="grid grid-cols-4 gap-1">
+        {(
+          [
+            ['properties', HomeIcon, t.manage, 'open-manage'],
+            ['trade', ArrowLeftRight, t.trade, 'open-trade'],
+            ['log', List, t.log, 'open-log'],
+            ['menu', Menu, t.menu, 'open-menu'],
+          ] as const
+        ).map(([sheet, Icon, label, testId]) => (
+          <Button
+            key={sheet}
+            data-testid={testId}
+            variant="secondary"
+            className="flex flex-col items-center gap-0 px-0.5 text-[10px]"
+            onClick={() => openSheet(sheet)}
+          >
+            <Icon size={16} />
+            {label}
+          </Button>
+        ))}
       </div>
     </div>
   );

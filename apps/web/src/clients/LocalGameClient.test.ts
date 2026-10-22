@@ -2,7 +2,7 @@ import {
   checkInvariants,
   decide,
   createSeededRng,
-  getActingPlayer,
+  getPendingActors,
   makeSettings,
   type GameEvent,
 } from '@monopoli/engine';
@@ -19,7 +19,16 @@ function newGame(saves: LocalSave[] = [], seed = 42) {
     {
       map,
       settings: makeSettings('official'),
-      seats: buildSeats({ mapId: 'dubai', nickname: 'Me', bots: 2, token: null, color: null }),
+      seats: buildSeats({
+        mapId: 'dubai',
+        nickname: 'Me',
+        bots: 2,
+        botLevels: ['hard', 'normal'],
+        token: null,
+        color: null,
+        preset: 'official',
+        house: {},
+      }),
       seed,
       now: 0,
     },
@@ -32,8 +41,7 @@ async function play(client: LocalGameClient, n: number) {
   const humanRng = createSeededRng(9);
   for (let i = 0; i < n && client.state.phase !== 'game_over'; i++) {
     if (client.stepBot()) continue;
-    const actor = getActingPlayer(client.state);
-    if (actor !== client.me) throw new Error('nobody to act');
+    if (!getPendingActors(client.state).includes(client.me)) throw new Error('nobody to act');
     await client.dispatch(decide({ map, state: client.state }, client.me, 'easy', humanRng));
   }
 }
@@ -43,6 +51,7 @@ describe('LocalGameClient', () => {
     const c = newGame();
     expect(c.me).toBe('p0');
     expect(c.state.players.map((p) => p.controlledBy)).toEqual(['human', 'bot', 'bot']);
+    expect(c.state.players.map((p) => p.botLevel)).toEqual([undefined, 'hard', 'normal']);
   });
 
   it('notifies subscribers with state and events, and autosaves after every action', async () => {
@@ -93,5 +102,31 @@ describe('saves', () => {
     expect(migrateSave({ ...save, version: SAVE_VERSION + 1 })).toBeNull();
     expect(migrateSave({ ...save, state: { ...save.state, schemaVersion: 999 } })).toBeNull();
     expect(migrateSave('nonsense')).toBeNull();
+  });
+});
+
+describe('save upgrade', () => {
+  it('a Phase 2 (state schema v1) save is upgraded, not discarded', () => {
+    const save = newGame().toSave();
+    const {
+      trades: _t,
+      tradeSeq: _s,
+      proposalsThisTurn: _p,
+      auctionQueue: _q,
+      endReason: _e,
+      ...rest
+    } = save.state;
+    const v1 = {
+      ...save,
+      state: {
+        ...rest,
+        schemaVersion: 1,
+        players: rest.players.map(({ timeouts: _x, ...p }) => p),
+      },
+    };
+    const upgraded = migrateSave(v1);
+    expect(upgraded?.state.schemaVersion).toBe(2);
+    expect(upgraded?.state.trades).toEqual([]);
+    expect(upgraded?.state.players[0]?.timeouts).toBe(0);
   });
 });

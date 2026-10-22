@@ -35,6 +35,9 @@ async function startSolo(page: Page, map = 'myanmar', seed = 7) {
 async function playUntil(page: Page, until: string, maxSteps = 120) {
   for (let i = 0; i < maxSteps; i++) {
     if (await page.getByTestId(until).isVisible()) return;
+    // Stay out of auctions so the bots settle them quickly.
+    const withdraw = page.getByTestId('auction-withdraw');
+    if ((await withdraw.isVisible()) && (await withdraw.isEnabled())) await withdraw.click();
     for (const id of ['act-roll', 'act-end', 'act-decline']) {
       const btn = page.getByTestId(id);
       if (until !== id && (await btn.isVisible()) && (await btn.isEnabled())) {
@@ -81,8 +84,8 @@ test('buy a property', async ({ page }) => {
   const name = (await deed.locator('div').first().innerText()).trim();
   await page.getByTestId('act-buy').click();
   await expect(page.getByTestId('act-buy')).toBeHidden();
-  await page.getByRole('button', { name: 'Properties' }).click();
-  await expect(page.getByTestId('properties-sheet')).toContainText(name);
+  await page.getByTestId('open-manage').click();
+  await expect(page.getByTestId('manage-sheet')).toContainText(name);
 });
 
 test('debt: mortgage to raise cash, then pay', async ({ page }) => {
@@ -149,4 +152,75 @@ test('works offline after the first visit (PWA)', async ({ page, context }) => {
   await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
   await page.getByTestId('act-roll').click();
   await expect(page.getByTestId('dice')).toBeVisible();
+});
+
+test('declining a property starts an auction; dropping out lets the bots settle it', async ({
+  page,
+}) => {
+  await startSolo(page, 'dubai');
+  await playUntil(page, 'act-decline');
+  await page.getByTestId('act-decline').click();
+  const panel = page.getByTestId('auction-panel');
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId('auction-status')).toBeVisible();
+  await page.getByTestId('auction-withdraw').click();
+  await expect(panel).toBeHidden({ timeout: 30_000 });
+});
+
+test('build houses on a full color set from the Manage sheet', async ({ page }) => {
+  await startSolo(page, 'dubai');
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  await page.evaluate(() => {
+    type Hook = { patch: (fn: (s: GameState) => void) => void };
+    (window as unknown as { __monopoli: Hook }).__monopoli.patch((s) => {
+      s.properties.p01 = { owner: 'p0', mortgaged: false, buildings: 0 };
+      s.properties.p02 = { owner: 'p0', mortgaged: false, buildings: 0 };
+    });
+  });
+  await page.getByTestId('open-manage').click();
+  await page.getByTestId('build-p01').click();
+  await expect(page.getByTestId('manage-p01')).toContainText('🏠');
+  // Even building: p01 cannot get a second house before p02 has one.
+  await expect(page.getByTestId('build-p01')).toBeDisabled();
+  await expect(page.getByTestId('build-p02')).toBeEnabled();
+});
+
+test('accept a trade offer from a bot', async ({ page }) => {
+  await startSolo(page, 'dubai');
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  await page.evaluate(() => {
+    type Hook = { patch: (fn: (s: GameState) => void) => void };
+    (window as unknown as { __monopoli: Hook }).__monopoli.patch((s) => {
+      s.properties.t1 = { owner: 'p0', mortgaged: false, buildings: 0 };
+      s.trades = [
+        {
+          id: 't50',
+          from: 'p1',
+          to: 'p0',
+          give: { cash: 300, tiles: [], jailCards: 0 },
+          get: { cash: 0, tiles: ['t1'], jailCards: 0 },
+          expiresAt: Date.now() + 60_000,
+        },
+      ];
+    });
+  });
+  await expect(page.getByTestId('incoming-offer')).toContainText('Dubai Metro');
+  await page.getByTestId('accept-offer').click();
+  await expect(page.getByTestId('incoming-offer')).toBeHidden();
+  await expect(page.getByTestId('player-p0')).toContainText('AED 1,800');
+});
+
+test('choose bot levels and house rules in setup', async ({ page }) => {
+  await page.goto('/?seed=5&test');
+  await page.getByTestId('play-solo').click();
+  await page.getByTestId('bot-0-hard').click();
+  await page.getByTestId('rules-house').click();
+  await page
+    .getByTestId('house-rules')
+    .getByText('Taxes and fines go to a Free Parking pot')
+    .click();
+  await page.getByTestId('house-rules').getByRole('button', { name: 'Close' }).click();
+  await page.getByTestId('start-game').click();
+  await expect(page.getByTestId('player-p1')).toContainText('H');
+  await expect(page.getByTestId('board')).toContainText('Pot');
 });

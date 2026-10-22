@@ -1,5 +1,5 @@
 // Starting, resuming and leaving solo games.
-import { makeSettings, type GameState, type SeatInit } from '@monopoli/engine';
+import { makeSettings, type BotLevel, type GameState, type SeatInit } from '@monopoli/engine';
 import { LocalGameClient } from '../clients/LocalGameClient';
 import { useUi, type SoloSetup } from '../store/ui';
 import { applyTheme, getMap } from './maps';
@@ -61,7 +61,7 @@ export function buildSeats(setup: SoloSetup): SeatInit[] {
       token: otherTokens[i]?.id ?? token,
       color: otherColors[i] ?? color,
       kind: 'bot',
-      botLevel: 'easy',
+      botLevel: (setup.botLevels?.[i] ?? 'normal') as BotLevel,
     });
   }
   return seats;
@@ -72,7 +72,7 @@ export function newSoloGame(setup: SoloSetup): void {
   const client = LocalGameClient.create(
     {
       map,
-      settings: makeSettings('official'),
+      settings: makeSettings(setup.preset ?? 'official', setup.house ?? {}),
       seats: buildSeats(setup),
       seed: randomSeed(),
       now: Date.now(),

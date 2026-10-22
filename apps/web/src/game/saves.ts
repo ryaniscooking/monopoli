@@ -10,6 +10,27 @@ import { createStore, del, entries, set } from 'idb-keyval';
 
 export const SAVE_VERSION = 1;
 
+/** Engine state schema v1 (Phase 2) -> v2 (Phase 3): new fields with empty defaults. */
+function upgradeState(state: Record<string, unknown>): GameState | null {
+  if (state.schemaVersion === 1) {
+    const players = (state.players as Record<string, unknown>[]).map((p) => ({
+      timeouts: 0,
+      ...p,
+    }));
+    state = {
+      ...state,
+      players,
+      schemaVersion: 2,
+      endReason: state.winner ? 'last_standing' : null,
+      trades: [],
+      tradeSeq: 1,
+      proposalsThisTurn: {},
+      auctionQueue: [],
+    };
+  }
+  return state.schemaVersion === STATE_SCHEMA_VERSION ? (state as unknown as GameState) : null;
+}
+
 export interface LocalSave {
   version: number;
   mapId: string;
@@ -33,10 +54,10 @@ export interface SaveStore {
 export function migrateSave(raw: unknown): LocalSave | null {
   if (!raw || typeof raw !== 'object') return null;
   const save = raw as Partial<LocalSave>;
-  if (save.version !== SAVE_VERSION) return null;
-  if (save.state?.schemaVersion !== STATE_SCHEMA_VERSION) return null;
+  if (save.version !== SAVE_VERSION || !save.state) return null;
   if (!save.secrets || !Array.isArray(save.rngState) || typeof save.mapId !== 'string') return null;
-  return save as LocalSave;
+  const state = upgradeState(save.state as unknown as Record<string, unknown>);
+  return state ? ({ ...save, state } as LocalSave) : null;
 }
 
 const key = (mapId: string) => `save:${mapId}`;

@@ -60,8 +60,38 @@ export function describeEvent(map: ResolvedMap, state: GameState, e: GameEvent):
       return `${name(e.debtor)} owes ${name(e.creditor)} ${money(e.amount)} and must raise cash`;
     case 'bankrupt':
       return `${name(e.player)} is bankrupt`;
+    case 'built':
+      return `${name(e.player)} built ${e.buildings === 5 ? 'a hotel' : 'a house'} on ${tileName(map, e.tile)}`;
+    case 'sold_building':
+      return `${name(e.player)} sold a building on ${tileName(map, e.tile)} (+${money(e.amount)})`;
+    case 'auction_started':
+      return e.item.type === 'property'
+        ? `Auction: ${tileName(map, e.item.tile)}`
+        : `Auction: one ${e.item.building} (the bank is running low)`;
+    case 'auction_bid':
+      return `${name(e.player)} bids ${money(e.amount)}`;
+    case 'auction_withdrew':
+      return `${name(e.player)} drops out`;
+    case 'auction_ended':
+      return e.winner
+        ? `${name(e.winner)} wins the auction for ${money(e.amount)}`
+        : 'No bids: the bank keeps it';
+    case 'trade_proposed':
+      return `${name(e.offer.from)} offers a trade to ${name(e.offer.to)}`;
+    case 'trade_accepted':
+      return `${name(e.offer.to)} accepted ${name(e.offer.from)}’s trade`;
+    case 'trade_declined':
+      return 'Trade declined';
+    case 'trade_cancelled':
+      return e.reason === 'expired' ? 'A trade offer expired' : 'A trade offer was withdrawn';
+    case 'last_round':
+      return 'Time is up: this is the last round';
+    case 'timed_out':
+      return `${name(e.player)} ran out of time`;
     case 'game_over':
-      return `${name(e.winner)} wins the game!`;
+      return e.reason === 'time_limit'
+        ? `Time’s up: ${name(e.winner)} wins with the highest net worth!`
+        : `${name(e.winner)} wins the game!`;
     default:
       return null;
   }

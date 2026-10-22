@@ -1,7 +1,10 @@
 import { useGesture } from '@use-gesture/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { formatMoney } from '@monopoli/engine';
+import { useNow } from '../components/useNow';
 import { useTable } from '../game/table';
+import { en } from '../strings/en';
 import { useUi } from '../store/ui';
 import { Dice } from './Dice';
 import { tileRect, tokenSpot } from './geometry';
@@ -200,7 +203,15 @@ export function Board() {
             </div>
             <div className="opacity-60" style={{ fontSize: Math.max(8, u * 0.24) }}>
               Round {view.round}
+              {view.settings.freeParkingPot && (
+                <> · {en.game.pot(formatMoney(map, view.parkingPot))}</>
+              )}
             </div>
+            <TimeLeft
+              endsAt={view.endsAt}
+              lastRound={view.lastRoundPending}
+              size={Math.max(8, u * 0.26)}
+            />
           </div>
 
           {alive.map((p) => {
@@ -259,6 +270,30 @@ export function Board() {
           )}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+function TimeLeft({
+  endsAt,
+  lastRound,
+  size,
+}: {
+  endsAt: number | null;
+  lastRound: boolean;
+  size: number;
+}) {
+  const now = useNow(1000);
+  if (endsAt === null) return null;
+  const left = Math.max(0, endsAt - now);
+  const mm = Math.floor(left / 60_000);
+  const ss = String(Math.floor((left % 60_000) / 1000)).padStart(2, '0');
+  return (
+    <div
+      className={`font-semibold ${lastRound || left === 0 ? 'text-red-700' : 'opacity-70'}`}
+      style={{ fontSize: size }}
+    >
+      {lastRound || left === 0 ? en.game.lastRound : en.game.timeLeft(`${mm}:${ss}`)}
     </div>
   );
 }

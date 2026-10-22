@@ -47,3 +47,19 @@ Record assumptions, deviations from docs/BUILD_SPEC.md, and verified external li
 - **Test hook:** with `?test` (or in dev) `window.__monopoli.patch(fn)` edits the local game state so UI tests can reach scenarios (debt, game over). Solo mode is client-trusted by design (spec 11.13); online play will not have it.
 - **Sounds deferred to Phase 5** (spec phase list); Phase 2 has animations only.
 - **Known limitation:** with no houses until Phase 3, solo games against Easy bots rarely end by bankruptcy (most simulated games pass 3,000 turns). Finishing a game is practical from Phase 3 (houses, time limit).
+
+## Phase 3 (2026-10-22)
+
+- **R-045 building shortage (digital adaptation):** a shortage exists when two or more players could build the same kind of building right now and the bank has fewer left than that. The build request then becomes a one-building auction among those players; the opening bid is the requested tile's house cost, the winner pays their bid (instead of the house cost) and the building is placed on the requested tile if the winner requested it, else on the winner's most valuable eligible tile.
+- **Hotel sale with too few houses in the bank (R-044):** the hotel is sold down to nothing and the owner gets half of all five building costs.
+- **Bids:** at least 1 classic unit above the high bid (1 AED / 1,000 Ks); the high bidder cannot withdraw. An auction with one remaining bidder and no bids continues until that bidder bids, withdraws, or the timer ends.
+- **Trading is closed while any decision is pending** (buy, auction, debt) — R-090 names auctions and debts; a pending buy is included so a trade's mortgage interest can never open a debt on top of another decision.
+- **Anti-spam:** at most 3 trade proposals per player per turn (online abuse limit, spec 11.8) in addition to R-093's one open offer.
+- **R-064 on trades and bankruptcy:** the 10% interest is charged automatically; "unmortgage at once" is done afterwards with the normal Unmortgage button (same total cost).
+- **Time limit (R-101):** `lastRoundPending` is set by a clock tick or at the next turn change after `endsAt`; the game ends when play returns to the first player.
+- **Turn timer (R-110)** is implemented in the engine for online play; solo games do not offer it.
+- **Bots:** Normal/Hard follow spec 9.3. Interpretations: Normal's reserve uses the average of the 3 highest rents it could owe; Hard's "expected rent over 2 rounds" assumes ~2.4 moves and a uniform 1/40 landing chance per tile. Tuning (ablation tests, 300-400 games each) changed Hard to: offer a 1.5x cash price for a set's last tile before trying a swap; never offer a swap that brings the opponent within one tile of a set; bid up to full value (keeping half its reserve unless the tile completes or blocks a set); raise debt cash by mortgaging bare tiles before selling houses.
+- **Bot auction behaviour:** each bot's maximum bid is fixed per auction (a hash of bot, tile and round, not a fresh random number per decision; re-rolling caused a strong seat-order bias), and bots raise in steps of up to 10 classic units so auctions against bots finish in seconds.
+- **Sanity targets (`pnpm sim:targets`, 400 games per matchup, seats alternated, turn-cap draws count as losses):** Hard beats Easy 80-82%, Normal beats Easy 79%, Hard beats Normal 68-69% on both maps (targets 70 / 60 / 55%).
+- **Games now finish:** Easy-vs-Easy 1v1 ends in ~180 turns in ~87% of games; mixed-level 4-player games ~99% within the cap.
+- **Saved games:** state schema v2; Phase 2 saves (v1) are upgraded on load.

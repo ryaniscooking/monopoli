@@ -1,4 +1,4 @@
-import { formatMoney, netWorth, unmortgageCost, type Action } from '@monopoli/engine';
+import { formatMoney, netWorth, type Action } from '@monopoli/engine';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Modal, SectionLabel } from '../components/ui';
 import { useSetup, useUi } from '../store/ui';
@@ -100,73 +100,6 @@ export function DebtPanel() {
           )}
         </div>
       )}
-    </Modal>
-  );
-}
-
-/** My properties with mortgage / unmortgage (spec 12.6 Manage). */
-export function PropertiesSheet() {
-  const map = useTable((s) => s.map);
-  const view = useTable((s) => s.view);
-  const me = useTable((s) => s.client?.me);
-  const sheet = useUi((s) => s.sheet);
-  const openSheet = useUi((s) => s.openSheet);
-  const legal = useMyActions();
-  if (!map || !view || !me) return null;
-  const mine = map.buyable.filter((id) => view.properties[id]?.owner === me);
-  const money = (n: number) => formatMoney(map, n);
-
-  return (
-    <Modal open={sheet === 'properties'} onClose={() => openSheet(null)} testId="properties-sheet">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="text-lg font-bold">{t.properties}</div>
-        <Button variant="light" onClick={() => openSheet(null)}>
-          {t.close}
-        </Button>
-      </div>
-      {mine.length === 0 && <div className="text-sm opacity-70">{t.noProperties}</div>}
-      <div className="flex flex-col gap-1">
-        {mine.map((id) => {
-          const tile = map.byId[id];
-          const prop = view.properties[id];
-          if (!tile || !prop || !('mortgage' in tile)) return null;
-          const canM = legal.some((a) => a.type === 'mortgage' && a.tile === id);
-          const canU = legal.some((a) => a.type === 'unmortgage' && a.tile === id);
-          return (
-            <div key={id} className="flex items-center gap-2 rounded-lg bg-white px-2 py-1 text-sm">
-              <span
-                className="h-4 w-2 rounded-sm"
-                style={{
-                  background:
-                    tile.type === 'property' ? `var(--g-${tile.group})` : 'var(--m-primary)',
-                }}
-              />
-              <span className="flex-1 truncate">{tile.name}</span>
-              {prop.mortgaged && (
-                <span className="text-[11px] font-semibold opacity-70">{t.mortgaged}</span>
-              )}
-              {canM && (
-                <Button
-                  variant="light"
-                  className="text-[12px]"
-                  onClick={() => act({ type: 'mortgage', tile: id })}
-                >
-                  {t.mortgage(money(tile.mortgage))}
-                </Button>
-              )}
-              {canU && (
-                <Button
-                  variant="light"
-                  className="text-[12px]"
-                  onClick={() => act({ type: 'unmortgage', tile: id })}
-                >
-                  {t.unmortgage(money(unmortgageCost(map, id)))}
-                </Button>
-              )}
-            </div>
-          );
-        })}
-      </div>
     </Modal>
   );
 }

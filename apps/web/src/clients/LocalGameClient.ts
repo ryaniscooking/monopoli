@@ -1,11 +1,12 @@
 // Solo play: the engine runs in the browser, bots are decided locally. No network calls at all.
 import {
   applyAction,
+  botsToAct,
   createGame,
   createSeededRng,
   decide,
-  getActingPlayer,
   rngFromState,
+  somethingDue,
   type Action,
   type GameSecrets,
   type GameState,
@@ -75,12 +76,29 @@ export class LocalGameClient implements GameClient {
     this.listeners.clear();
   }
 
-  /** The bot that must act now, if any. */
+  /** A bot with a decision to make now (turn, auction bid, trade reply), if any. */
   botToAct(): PlayerId | null {
-    const actor = getActingPlayer(this.current);
-    if (!actor) return null;
-    const p = this.current.players.find((x) => x.id === actor);
-    return p?.controlledBy === 'bot' ? actor : null;
+    return botsToAct(this.map, this.current)[0] ?? null;
+  }
+
+  /** Earliest pending deadline (auction, trade expiry, time limit, turn timer), epoch ms. */
+  nextDeadline(): number | null {
+    const s = this.current;
+    if (s.phase === 'game_over') return null;
+    const times = [
+      s.pending?.kind === 'auction' ? s.pending.deadline : null,
+      ...s.trades.map((t) => t.expiresAt),
+      s.endsAt !== null && !s.lastRoundPending ? s.endsAt : null,
+      s.turnDeadline,
+    ].filter((t): t is number => t !== null);
+    return times.length > 0 ? Math.min(...times) : null;
+  }
+
+  /** Apply the clock (auction end, trade expiry, time limit) if something is due. */
+  tick(now = Date.now()): boolean {
+    if (!somethingDue(this.current, now)) return false;
+    this.apply('system', { type: 'system_timeout' }, now);
+    return true;
   }
 
   /** Let the bot that must act make one decision. Returns false when no bot is due. */
@@ -117,9 +135,9 @@ export class LocalGameClient implements GameClient {
     };
   }
 
-  private apply(actor: PlayerId, action: Action): void {
+  private apply(actor: PlayerId | 'system', action: Action, now = Date.now()): void {
     const res = applyAction(
-      { map: this.map, rng: this.rng, now: Date.now() },
+      { map: this.map, rng: this.rng, now },
       this.current,
       this.secrets,
       actor,

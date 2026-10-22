@@ -23,3 +23,6 @@ jobs:
       - run: pnpm maps:validate
       - run: pnpm sim:smoke
       - run: pnpm build
+      - name: Install Playwright browser
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm --filter web e2e

@@ -7,11 +7,12 @@ function trimDecimal(value: number, digits: number): string {
 /**
  * The single money formatter for all UI text (spec 8.3).
  * Full form: "AED 1,500" / "1,500,000 Ks". Compact (board tiles): "AED 60" / "60K Ks" / "1.5M Ks".
+ * `symbol: false` drops the currency symbol (tiny board tiles).
  */
 export function formatMoney(
   map: Pick<ResolvedMap, 'currency'>,
   amount: number,
-  opts: { compact?: boolean } = {},
+  opts: { compact?: boolean; symbol?: boolean } = {},
 ): string {
   const { symbol, symbolPosition, compactFrom, locale } = map.currency;
   const abs = Math.abs(amount);
@@ -23,6 +24,7 @@ export function formatMoney(
     body = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(abs);
   }
   const sign = amount < 0 ? '-' : '';
+  if (opts.symbol === false) return `${sign}${body}`;
   return symbolPosition === 'prefix' ? `${sign}${symbol} ${body}` : `${sign}${body} ${symbol}`;
 }
 

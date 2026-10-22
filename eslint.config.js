@@ -18,6 +18,11 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // Asset generator: Node script that also runs code inside a Playwright browser page.
+    files: ['apps/web/scripts/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     // The engine is pure: time and randomness are injected, no DOM or Node APIs.
     files: ['packages/engine/src/**/*.ts'],
     languageOptions: { globals: {} },

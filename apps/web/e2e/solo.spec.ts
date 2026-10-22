@@ -1,0 +1,152 @@
+import type { GameState } from '@monopoli/engine';
+import { expect, test, type Page } from '@playwright/test';
+
+// Fast animations, no install hint; fixed dice via ?seed; ?test exposes window.__monopoli.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'monopoli:settings',
+      JSON.stringify({
+        state: { speed: 'fast', reducedMotion: true, installHintDismissed: true },
+        version: 0,
+      }),
+    );
+  });
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  (page as Page & { errors?: string[] }).errors = errors;
+});
+
+test.afterEach(async ({ page }) => {
+  expect((page as Page & { errors?: string[] }).errors ?? []).toEqual([]);
+});
+
+async function startSolo(page: Page, map = 'myanmar', seed = 7) {
+  await page.goto(`/?seed=${seed}&test`);
+  await page.getByTestId('play-solo').click();
+  await page.getByTestId(`map-${map}`).click();
+  await page.getByTestId('nickname').fill('Tester');
+  await page.getByTestId('start-game').click();
+  await expect(page.getByTestId('game-screen')).toBeVisible();
+}
+
+/** Press whatever primary button is offered until `until` is visible. */
+async function playUntil(page: Page, until: string, maxSteps = 120) {
+  for (let i = 0; i < maxSteps; i++) {
+    if (await page.getByTestId(until).isVisible()) return;
+    for (const id of ['act-roll', 'act-end', 'act-decline']) {
+      const btn = page.getByTestId(id);
+      if (until !== id && (await btn.isVisible()) && (await btn.isEnabled())) {
+        await btn.click();
+        break;
+      }
+    }
+    await page.waitForTimeout(150);
+  }
+  throw new Error(`never reached ${until}`);
+}
+
+test('home screen shows the logo and menu', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('logo')).toBeVisible();
+  await expect(page.getByTestId('play-solo')).toBeVisible();
+  await expect(page).toHaveTitle('မိုနိုပိုလီ');
+  await expect(page.getByTestId('rotate-overlay')).toBeHidden();
+});
+
+test('portrait shows the rotate overlay', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByTestId('rotate-overlay')).toBeVisible();
+});
+
+test('a solo game starts with the human and bots; the board fits the screen', async ({ page }) => {
+  await startSolo(page);
+  await expect(page.getByTestId('player-p0')).toContainText('Tester');
+  await expect(page.getByTestId('player-p3')).toBeVisible(); // 3 bots by default
+  const board = await page.getByTestId('board').boundingBox();
+  expect(board).not.toBeNull();
+  expect(board!.height).toBeLessThanOrEqual(390);
+  expect(Math.abs(board!.width - board!.height)).toBeLessThan(2);
+  // Bots take their turns until it is ours.
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+});
+
+test('buy a property', async ({ page }) => {
+  await startSolo(page);
+  await playUntil(page, 'act-buy');
+  const deed = page.getByTestId('deed');
+  await expect(deed).toBeVisible();
+  const name = (await deed.locator('div').first().innerText()).trim();
+  await page.getByTestId('act-buy').click();
+  await expect(page.getByTestId('act-buy')).toBeHidden();
+  await page.getByRole('button', { name: 'Properties' }).click();
+  await expect(page.getByTestId('properties-sheet')).toContainText(name);
+});
+
+test('debt: mortgage to raise cash, then pay', async ({ page }) => {
+  await startSolo(page, 'dubai');
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  await page.evaluate(() => {
+    type Hook = { patch: (fn: (s: GameState) => void) => void };
+    const hook = (window as unknown as { __monopoli: Hook }).__monopoli;
+    hook.patch((s) => {
+      const me = s.players[0]!;
+      me.cash = 10;
+      s.properties.p22 = { owner: 'p0', mortgaged: false, buildings: 0 };
+      s.phase = 'post_roll';
+      s.pending = {
+        kind: 'debt',
+        debtor: 'p0',
+        creditor: 'bank',
+        amount: 150,
+        reason: 'test',
+        queue: [],
+        then: null,
+      };
+    });
+  });
+  const panel = page.getByTestId('debt-panel');
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId('act-pay-debt')).toBeDisabled();
+  await panel.getByRole('button', { name: /Palm Jumeirah/ }).click();
+  await expect(page.getByTestId('act-pay-debt')).toBeEnabled();
+  await page.getByTestId('act-pay-debt').click();
+  await expect(panel).toBeHidden();
+  await expect(page.getByTestId('act-end')).toBeVisible();
+});
+
+test('the game is saved and can be resumed after a reload', async ({ page }) => {
+  await startSolo(page, 'dubai', 11);
+  await playUntil(page, 'act-end');
+  await page.reload();
+  await expect(page.getByTestId('resume-dubai')).toBeVisible();
+  await page.getByTestId('resume-dubai').click();
+  await expect(page.getByTestId('game-screen')).toBeVisible();
+  await expect(page.getByTestId('act-end')).toBeVisible();
+});
+
+test('tap a tile to see its deed', async ({ page }) => {
+  await startSolo(page);
+  const tile = page.locator('[data-tile="p22"]');
+  await tile.tap();
+  await expect(page.getByTestId('deed')).toContainText('Yangon');
+  await expect(page.getByTestId('deed')).toContainText('400,000 Ks');
+});
+
+test('works offline after the first visit (PWA)', async ({ page, context }) => {
+  await page.goto('/');
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByTestId('play-solo')).toBeVisible();
+  await page.getByTestId('play-solo').click();
+  await page.getByTestId('start-game').click();
+  await expect(page.getByTestId('game-screen')).toBeVisible();
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('act-roll').click();
+  await expect(page.getByTestId('dice')).toBeVisible();
+});

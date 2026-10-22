@@ -67,5 +67,7 @@ describe('formatMoney (spec 8.3)', () => {
     expect(formatMoney(myanmar, 60_000, { compact: true })).toBe('60K Ks');
     expect(formatMoney(myanmar, 1_500_000, { compact: true })).toBe('1.5M Ks');
     expect(formatMoney(myanmar, 2_000_000, { compact: true })).toBe('2M Ks');
+    expect(formatMoney(myanmar, 60_000, { compact: true, symbol: false })).toBe('60K');
+    expect(formatMoney(dubai, 200, { compact: true, symbol: false })).toBe('200');
   });
 });

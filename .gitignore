@@ -13,3 +13,7 @@ supabase/.temp
 
 # local Claude Code settings
 .claude/settings.local.json
+
+# Playwright output
+test-results/
+playwright-report/

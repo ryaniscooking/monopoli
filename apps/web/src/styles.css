@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+/* Map theme tokens (set at runtime by applyTheme; defaults = Myanmar). */
+@theme inline {
+  --color-primary: var(--m-primary);
+  --color-secondary: var(--m-secondary);
+  --color-accent: var(--m-accent);
+  --color-board: var(--m-board);
+  --color-tile: var(--m-tile);
+  --color-ink: var(--m-text);
+}
+
+:root {
+  --m-primary: #7a1f2b;
+  --m-secondary: #2e7d4f;
+  --m-accent: #e0a526;
+  --m-board: #f6ebd0;
+  --m-tile: #fffbf0;
+  --m-text: #2a1a14;
+  --g-brown: #8b5a3c;
+  --g-lightblue: #8ed1f0;
+  --g-pink: #d86fa6;
+  --g-orange: #f28c28;
+  --g-red: #d62f2f;
+  --g-yellow: #f2d338;
+  --g-green: #2e9e5b;
+  --g-darkblue: #1f3fa6;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--m-primary);
+  color: var(--m-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Notch / home indicator (spec 12.2). */
+.safe {
+  padding: max(env(safe-area-inset-top), 6px) max(env(safe-area-inset-right), 8px)
+    max(env(safe-area-inset-bottom), 6px) max(env(safe-area-inset-left), 8px);
+}
+
+.rotate-overlay {
+  display: none;
+}
+@media (orientation: portrait) {
+  .rotate-overlay {
+    display: flex;
+  }
+}
+
+.scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}

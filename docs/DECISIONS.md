@@ -33,3 +33,17 @@ Record assumptions, deviations from docs/BUILD_SPEC.md, and verified external li
 - **Map tests live in `packages/engine/test/maps.test.ts`** (not `packages/maps/schema-tests/`) so the maps package stays data-only with no test dependencies.
 - **Map JSON** was generated once from Appendix B/C data and is committed as plain data; edit the JSON directly from now on.
 - **Simulation result (acceptance):** 1,000 Easy-vs-Easy games per map, 0 invariant violations. Without houses ~95% of games hit the 3,000-turn cap (expected; building arrives in Phase 3). Invariants checked every step include a money ledger rebuilt only from `money_transfer` events.
+
+## Phase 2 (2026-10-22)
+
+- **vite-plugin-pwa pinned to 1.3.x** (supports Vite 8, documented API). 2.0.0 was released 2026-10-03 and only widens the `@vite-pwa/assets-generator` peer range; revisit later.
+- **PWA:** `registerType: 'prompt'` with an "Update available" toast; Workbox precaches the whole build (JS ~590 kB / ~185 kB gzipped, CSS, HTML, icons, logo). Maps are bundled into the JS, so solo play needs no network. Verified by a Playwright test that reloads with the network off and starts a game.
+- **Icons and the Burmese logo are generated** by `apps/web/scripts/gen-assets.mjs` (Playwright + Noto Sans Myanmar from Google Fonts at generation time) and committed as PNGs, so the app never ships a Burmese font.
+- **No router** (see conversation): screens switch via a Zustand UI store; `/r/:code` handling comes in Phase 4.
+- **Presentation queue (`apps/web/src/game/table.ts`):** every batch of engine events is animated in order, then the new state is shown; inputs are locked while it drains, and bots act 600-1600 ms (scaled by animation speed) after it is idle.
+- **Saves:** IndexedDB via idb-keyval, one slot per map, written after every action (state + secrets + rng state), versioned with `migrateSave`. Falls back to in-memory if IndexedDB is unavailable.
+- **Board tiles show prices without the currency symbol** ("60K", "200"): with symbols they do not fit 1u-wide tiles on iPhone SE. Full amounts are on the deed card and player cards.
+- **Tile text stays ≥ 8 px**; long single-word names shrink to fit when possible and otherwise wrap. Tap-to-zoom + deed card is the way to read a tile on small phones. Short display names could be added in Phase 5.
+- **Test hook:** with `?test` (or in dev) `window.__monopoli.patch(fn)` edits the local game state so UI tests can reach scenarios (debt, game over). Solo mode is client-trusted by design (spec 11.13); online play will not have it.
+- **Sounds deferred to Phase 5** (spec phase list); Phase 2 has animations only.
+- **Known limitation:** with no houses until Phase 3, solo games against Easy bots rarely end by bankruptcy (most simulated games pass 3,000 turns). Finishing a game is practical from Phase 3 (houses, time limit).

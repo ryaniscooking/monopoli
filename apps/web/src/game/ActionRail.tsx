@@ -1,0 +1,125 @@
+import { formatMoney, getActingPlayer, type Action } from '@monopoli/engine';
+import { List, Menu, Home as HomeIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Button } from '../components/ui';
+import { useUi } from '../store/ui';
+import { en } from '../strings/en';
+import { Deed } from './Deed';
+import { act, useTable } from './table';
+import { useMyActions } from './useMyActions';
+
+const t = en.game;
+
+/** Right rail (spec 12.3): the contextual primary action, then deed or navigation. */
+export function ActionRail() {
+  const map = useTable((s) => s.map);
+  const view = useTable((s) => s.view);
+  const me = useTable((s) => s.client?.me);
+  const selected = useUi((s) => s.selectedTile);
+  const selectTile = useUi((s) => s.selectTile);
+  const openSheet = useUi((s) => s.openSheet);
+  const legal = useMyActions();
+  if (!map || !view || !me) return null;
+
+  const has = (type: Action['type']) => legal.some((a) => a.type === type);
+  const money = (n: number) => formatMoney(map, n);
+  const self = view.players.find((p) => p.id === me);
+  const pending = view.pending;
+  const myBuy = pending?.kind === 'buy' && pending.player === me ? pending : null;
+  const deedTile = myBuy?.tile ?? selected;
+  const acting = getActingPlayer(view);
+  const actingName = view.players.find((p) => p.id === acting)?.name ?? '';
+
+  let primary: ReactNode;
+  if (view.phase === 'game_over') {
+    primary = null;
+  } else if (myBuy) {
+    primary = (
+      <>
+        <Button data-testid="act-buy" disabled={!has('buy')} onClick={() => act({ type: 'buy' })}>
+          {t.buy(money(myBuy.price))}
+        </Button>
+        <Button
+          data-testid="act-decline"
+          variant="secondary"
+          onClick={() => act({ type: 'decline_buy' })}
+        >
+          {t.decline}
+        </Button>
+      </>
+    );
+  } else if (has('roll')) {
+    primary = (
+      <>
+        <Button data-testid="act-roll" className="text-base" onClick={() => act({ type: 'roll' })}>
+          {self?.inJail ? t.rollDoubles : t.roll}
+        </Button>
+        {has('pay_jail_fine') && (
+          <Button variant="secondary" onClick={() => act({ type: 'pay_jail_fine' })}>
+            {t.payFine(money(view.settings.jailFine * map.m))}
+          </Button>
+        )}
+        {has('use_jail_card') && (
+          <Button variant="secondary" onClick={() => act({ type: 'use_jail_card' })}>
+            {t.useCard}
+          </Button>
+        )}
+      </>
+    );
+  } else if (has('end_turn')) {
+    primary = (
+      <Button data-testid="act-end" onClick={() => act({ type: 'end_turn' })}>
+        {t.endTurn}
+      </Button>
+    );
+  } else {
+    primary = (
+      <div data-testid="waiting" className="py-2 text-center text-[13px] opacity-85">
+        {acting === me ? t.yourMove : t.waiting(actingName)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-2 py-1 text-white">
+      <div className="flex flex-col gap-1.5">{primary}</div>
+      <div className="scroll-y min-h-0 flex-1">
+        {deedTile ? (
+          <Deed
+            map={map}
+            state={view}
+            tileId={deedTile}
+            onClose={myBuy ? undefined : () => selectTile(null)}
+          />
+        ) : null}
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        <Button
+          variant="secondary"
+          className="flex flex-col items-center gap-0 px-1 text-[11px]"
+          onClick={() => openSheet('properties')}
+        >
+          <HomeIcon size={16} />
+          {t.properties}
+        </Button>
+        <Button
+          variant="secondary"
+          className="flex flex-col items-center gap-0 px-1 text-[11px]"
+          onClick={() => openSheet('log')}
+        >
+          <List size={16} />
+          {t.log}
+        </Button>
+        <Button
+          data-testid="open-menu"
+          variant="secondary"
+          className="flex flex-col items-center gap-0 px-1 text-[11px]"
+          onClick={() => openSheet('menu')}
+        >
+          <Menu size={16} />
+          {t.menu}
+        </Button>
+      </div>
+    </div>
+  );
+}

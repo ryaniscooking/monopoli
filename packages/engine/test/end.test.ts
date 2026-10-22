@@ -115,3 +115,17 @@ describe('7.12 House rules', () => {
     expect(P(g, 'p1').cash).toBe(1400);
   });
 });
+
+describe('online seat control (spec 10.7)', () => {
+  it('a bot can take over a human seat and hand it back; bots and bankrupt seats are untouched', async () => {
+    const { setControlledBy } = await import('../src/index');
+    const g = setup();
+    const taken = setControlledBy(g.state, 'p1', 'bot');
+    expect(taken.state.players[1]).toMatchObject({ controlledBy: 'bot', connected: false });
+    expect(taken.events).toEqual([{ type: 'control_changed', player: 'p1', controlledBy: 'bot' }]);
+    expect(g.state.players[1]?.controlledBy).toBe('human'); // input not mutated
+    const back = setControlledBy(taken.state, 'p1', 'human');
+    expect(back.state.players[1]).toMatchObject({ controlledBy: 'human', connected: true });
+    expect(setControlledBy(back.state, 'p1', 'human').events).toEqual([]);
+  });
+});

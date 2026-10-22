@@ -41,7 +41,7 @@ export function rngFromState(state: readonly [number, number, number, number]): 
 }
 
 /** Adapter for a cryptographic source, e.g. `(buf) => crypto.getRandomValues(buf)`. */
-export function createCryptoRng(fill: (buf: Uint32Array) => void): Rng {
+export function createCryptoRng(fill: (buf: Uint32Array<ArrayBuffer>) => void): Rng {
   const buf = new Uint32Array(64);
   let i = buf.length;
   return {

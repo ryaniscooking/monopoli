@@ -5,6 +5,7 @@ export * from './types';
 export { ActionSchema } from './actions';
 export { botsToAct, decide } from './bots';
 export { acquisitionValue, assessTrade, portfolioValue } from './bots/valuation';
+export { setControlledBy } from './control';
 export { createGame, STATE_SCHEMA_VERSION } from './create';
 export { cardText, formatMoney } from './format';
 export { checkInvariants, MoneyLedger } from './invariants';

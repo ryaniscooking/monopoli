@@ -17,3 +17,6 @@ supabase/.temp
 # Playwright output
 test-results/
 playwright-report/
+
+# Generated Edge Function bundle (pnpm build:engine-edge)
+supabase/functions/

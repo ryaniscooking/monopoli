@@ -8,25 +8,17 @@ import {
   type TradeBundle,
   type TradeOffer,
 } from '@monopoli/engine';
-import { Minus, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Info, Minus, Plus } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Button, Modal, SectionLabel } from '../components/ui';
 import { useUi } from '../store/ui';
 import { en } from '../strings/en';
 import { useNow } from '../components/useNow';
+import { Deed } from './Deed';
 import { act, useTable } from './table';
 
 const tr = en.trade;
 const empty = (): TradeBundle => ({ cash: 0, tiles: [], jailCards: 0 });
-
-function describeBundle(map: ResolvedMap, b: TradeBundle): string {
-  const parts = [
-    ...b.tiles.map((id) => map.byId[id]?.name ?? id),
-    ...(b.cash > 0 ? [formatMoney(map, b.cash)] : []),
-    ...(b.jailCards > 0 ? [`${b.jailCards} × Jail card`] : []),
-  ];
-  return parts.length ? parts.join(', ') : tr.nothing;
-}
 
 /** Tiles a player could put in a trade (no buildings anywhere in the group, R-090). */
 function tradableTiles(map: ResolvedMap, s: GameState, owner: PlayerId): TileId[] {
@@ -47,6 +39,7 @@ function BundleEditor({
   bundle,
   onChange,
   title,
+  onInfo,
 }: {
   map: ResolvedMap;
   state: GameState;
@@ -54,6 +47,7 @@ function BundleEditor({
   bundle: TradeBundle;
   onChange: (b: TradeBundle) => void;
   title: string;
+  onInfo: (tile: TileId) => void;
 }) {
   const p = state.players.find((x) => x.id === owner);
   const tiles = tradableTiles(map, state, owner);
@@ -106,24 +100,33 @@ function BundleEditor({
         {tiles.map((id) => {
           const t = map.byId[id];
           return (
-            <label
-              key={id}
-              className="flex items-center gap-1.5 rounded bg-white px-1.5 py-1 text-[13px]"
-            >
-              <input
-                type="checkbox"
-                checked={bundle.tiles.includes(id)}
-                onChange={() => toggle(id)}
-              />
-              <span
-                className="h-3 w-1.5 shrink-0 rounded-sm"
-                style={{
-                  background: t?.type === 'property' ? `var(--g-${t.group})` : 'var(--m-primary)',
-                }}
-              />
-              <span className="truncate">{t?.name}</span>
-              {state.properties[id]?.mortgaged && <span className="text-[10px] opacity-60">M</span>}
-            </label>
+            <div key={id} className="flex items-center gap-1 rounded bg-white pr-0.5 text-[13px]">
+              <label className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1">
+                <input
+                  type="checkbox"
+                  checked={bundle.tiles.includes(id)}
+                  onChange={() => toggle(id)}
+                />
+                <span
+                  className="h-3 w-1.5 shrink-0 rounded-sm"
+                  style={{
+                    background: t?.type === 'property' ? `var(--g-${t.group})` : 'var(--m-primary)',
+                  }}
+                />
+                <span className="truncate">{t?.name}</span>
+                {state.properties[id]?.mortgaged && (
+                  <span className="text-[10px] opacity-60">M</span>
+                )}
+              </label>
+              <button
+                aria-label={tr.cardInfo}
+                data-testid={`info-${id}`}
+                className="p-1 opacity-60"
+                onClick={() => onInfo(id)}
+              >
+                <Info size={15} />
+              </button>
+            </div>
           );
         })}
       </div>
@@ -142,6 +145,7 @@ export function TradeSheet() {
   const [partner, setPartner] = useState<PlayerId | null>(null);
   const [give, setGive] = useState<TradeBundle>(empty);
   const [get, setGet] = useState<TradeBundle>(empty);
+  const [preview, setPreview] = useState<TileId | null>(null);
   if (!map || !view || !me) return null;
 
   const others = view.players.filter((p) => p.id !== me && !p.bankrupt);
@@ -189,6 +193,7 @@ export function TradeSheet() {
               bundle={give}
               onChange={setGive}
               title={tr.youGive}
+              onInfo={setPreview}
             />
             <BundleEditor
               map={map}
@@ -197,7 +202,9 @@ export function TradeSheet() {
               bundle={get}
               onChange={setGet}
               title={tr.youGet}
+              onInfo={setPreview}
             />
+            <DeedPreview tile={preview} onClose={() => setPreview(null)} />
           </div>
           <div className="sticky bottom-0 -mx-4 mt-2 flex items-center gap-2 bg-tile px-4 py-2">
             <div className="min-w-0 flex-1 truncate text-[12px] text-red-700">
@@ -230,17 +237,173 @@ export function TradeSheet() {
   );
 }
 
+/** A deed in a modal (tap a property in a trade to see its card). */
+function DeedPreview({ tile, onClose }: { tile: TileId | null; onClose: () => void }) {
+  const map = useTable((s) => s.map);
+  const view = useTable((s) => s.view);
+  return (
+    <Modal
+      open={!!tile && !!map && !!view}
+      onClose={onClose}
+      className="w-[min(300px,90vw)] p-2"
+      testId="deed-preview"
+    >
+      {tile && map && view && <Deed map={map} state={view} tileId={tile} onClose={onClose} />}
+    </Modal>
+  );
+}
+
+/** Colored chips for the properties in a bundle; tapping one shows its deed. */
+function TileChips({ tiles, onOpen }: { tiles: TileId[]; onOpen: (tile: TileId) => void }) {
+  const map = useTable((s) => s.map);
+  if (!map) return null;
+  return (
+    <>
+      {tiles.map((id) => {
+        const t = map.byId[id];
+        return (
+          <button
+            key={id}
+            data-testid={`chip-${id}`}
+            onClick={() => onOpen(id)}
+            className="m-0.5 inline-flex items-center gap-1 rounded border border-black/15 bg-white px-1 py-0.5 text-[11px] font-semibold"
+          >
+            <span
+              className="inline-block h-3 w-1.5 rounded-sm"
+              style={{
+                background: t?.type === 'property' ? `var(--g-${t.group})` : 'var(--m-primary)',
+              }}
+            />
+            {t?.name ?? id}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+function extras(map: ResolvedMap, b: TradeBundle): string {
+  const parts = [
+    ...(b.cash > 0 ? [formatMoney(map, b.cash)] : []),
+    ...(b.jailCards > 0 ? [`${b.jailCards} × Jail card`] : []),
+  ];
+  return parts.join(', ');
+}
+
+/** Every card in the offer side by side: what I get and what I give (spec 12.6 Trade). */
+function TradeDetails({
+  offer,
+  open,
+  onClose,
+  actions,
+}: {
+  offer: TradeOffer;
+  open: boolean;
+  onClose: () => void;
+  actions: ReactNode;
+}) {
+  const map = useTable((s) => s.map);
+  const view = useTable((s) => s.view);
+  const me = useTable((s) => s.client?.me);
+  if (!map || !view || !me) return null;
+  const incoming = offer.to === me;
+  const get = incoming ? offer.give : offer.get;
+  const give = incoming ? offer.get : offer.give;
+  const other = view.players.find((p) => p.id === (incoming ? offer.from : offer.to))?.name ?? '';
+  const column = (title: string, b: TradeBundle) => (
+    <div className="min-w-0 flex-1">
+      <div className="mb-1 text-[11px] font-semibold tracking-wide uppercase opacity-60">
+        {title}
+      </div>
+      {extras(map, b) && <div className="mb-1 text-sm font-semibold">{extras(map, b)}</div>}
+      {b.tiles.length === 0 && !extras(map, b) && (
+        <div className="text-sm opacity-60">{tr.nothing}</div>
+      )}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2">
+        {b.tiles.map((id) => (
+          <Deed key={id} map={map} state={view} tileId={id} />
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      className="h-[90vh] w-[min(820px,96vw)] pt-0"
+      testId="trade-details"
+    >
+      <div className="sticky top-0 z-10 -mx-4 mb-2 flex items-center gap-2 bg-tile px-4 pt-4 pb-2">
+        <div className="flex-1 text-lg font-bold">{tr.details(other)}</div>
+        {actions}
+        <Button variant="light" onClick={onClose}>
+          {en.game.close}
+        </Button>
+      </div>
+      <div className="flex gap-3">
+        {column(tr.youWouldGet, get)}
+        <div className="w-px shrink-0 bg-black/10" />
+        {column(tr.youWouldGive, give)}
+      </div>
+    </Modal>
+  );
+}
+
 function OfferCard({ offer, mine }: { offer: TradeOffer; mine: boolean }) {
   const map = useTable((s) => s.map);
   const view = useTable((s) => s.view);
   const me = useTable((s) => s.client?.me);
   const busy = useTable((s) => s.busy);
   const now = useNow(500);
+  const [details, setDetails] = useState(false);
+  const [preview, setPreview] = useState<TileId | null>(null);
   if (!map || !view || !me) return null;
   const name = (id: PlayerId) => view.players.find((p) => p.id === id)?.name ?? id;
   const secs = Math.max(0, Math.ceil((offer.expiresAt - now) / 1000));
   const canAccept =
     !busy && checkAction(map, view, me, { type: 'accept_trade', id: offer.id }, now) === null;
+  const get = mine ? offer.get : offer.give;
+  const give = mine ? offer.give : offer.get;
+  const buttons = mine ? (
+    <Button
+      variant="light"
+      disabled={busy}
+      onClick={() => act({ type: 'cancel_trade', id: offer.id })}
+    >
+      {tr.cancel}
+    </Button>
+  ) : (
+    <>
+      <Button
+        data-testid="accept-offer"
+        disabled={!canAccept}
+        onClick={() => {
+          setDetails(false);
+          void act({ type: 'accept_trade', id: offer.id });
+        }}
+      >
+        {tr.accept}
+      </Button>
+      <Button
+        variant="light"
+        disabled={busy}
+        onClick={() => {
+          setDetails(false);
+          void act({ type: 'decline_trade', id: offer.id });
+        }}
+      >
+        {tr.decline}
+      </Button>
+    </>
+  );
+  const line = (label: string, b: TradeBundle) => (
+    <div>
+      <span className="opacity-60">{label}: </span>
+      {extras(map, b) && <span className="font-semibold">{extras(map, b)} </span>}
+      <TileChips tiles={b.tiles} onOpen={setPreview} />
+      {b.tiles.length === 0 && !extras(map, b) && tr.nothing}
+    </div>
+  );
   return (
     <div
       data-testid={mine ? 'outgoing-offer' : 'incoming-offer'}
@@ -250,44 +413,21 @@ function OfferCard({ offer, mine }: { offer: TradeOffer; mine: boolean }) {
         <span>{mine ? tr.offerTo(name(offer.to)) : tr.offerFrom(name(offer.from))}</span>
         <span className="tabular text-[11px] opacity-60">{tr.expires(secs)}</span>
       </div>
-      {!mine && (
-        <>
-          <div>
-            <span className="opacity-60">{tr.gives}: </span>
-            {describeBundle(map, offer.give)}
-          </div>
-          <div>
-            <span className="opacity-60">{tr.wants}: </span>
-            {describeBundle(map, offer.get)}
-          </div>
-          <div className="mt-1.5 flex gap-1.5">
-            <Button
-              data-testid="accept-offer"
-              disabled={!canAccept}
-              onClick={() => act({ type: 'accept_trade', id: offer.id })}
-            >
-              {tr.accept}
-            </Button>
-            <Button
-              variant="light"
-              disabled={busy}
-              onClick={() => act({ type: 'decline_trade', id: offer.id })}
-            >
-              {tr.decline}
-            </Button>
-          </div>
-        </>
-      )}
-      {mine && (
-        <Button
-          variant="light"
-          className="mt-1"
-          disabled={busy}
-          onClick={() => act({ type: 'cancel_trade', id: offer.id })}
-        >
-          {tr.cancel}
+      {line(mine ? tr.youWouldGet : tr.gives, get)}
+      {line(mine ? tr.youWouldGive : tr.wants, give)}
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {buttons}
+        <Button data-testid="view-cards" variant="light" onClick={() => setDetails(true)}>
+          {tr.viewCards}
         </Button>
-      )}
+      </div>
+      <TradeDetails
+        offer={offer}
+        open={details}
+        onClose={() => setDetails(false)}
+        actions={buttons}
+      />
+      <DeedPreview tile={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }

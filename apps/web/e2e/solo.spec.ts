@@ -81,7 +81,7 @@ test('buy a property', async ({ page }) => {
   await playUntil(page, 'act-buy');
   const deed = page.getByTestId('deed');
   await expect(deed).toBeVisible();
-  const name = (await deed.locator('div').first().innerText()).trim();
+  const name = ((await deed.getByTestId('deed-name').textContent()) ?? '').trim();
   await page.getByTestId('act-buy').click();
   await expect(page.getByTestId('act-buy')).toBeHidden();
   await page.getByTestId('open-manage').click();
@@ -208,6 +208,41 @@ test('accept a trade offer from a bot', async ({ page }) => {
   await page.getByTestId('accept-offer').click();
   await expect(page.getByTestId('incoming-offer')).toBeHidden();
   await expect(page.getByTestId('player-p0')).toContainText('AED 1,800');
+});
+
+test('trade offers show the title deeds of the cards involved', async ({ page }) => {
+  await startSolo(page, 'dubai');
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  await page.evaluate(() => {
+    type Hook = { patch: (fn: (s: GameState) => void) => void };
+    (window as unknown as { __monopoli: Hook }).__monopoli.patch((s) => {
+      s.properties.t1 = { owner: 'p0', mortgaged: false, buildings: 0 };
+      s.properties.p01 = { owner: 'p1', mortgaged: false, buildings: 0 };
+      s.trades = [
+        {
+          id: 't51',
+          from: 'p1',
+          to: 'p0',
+          give: { cash: 0, tiles: ['p01'], jailCards: 0 },
+          get: { cash: 0, tiles: ['t1'], jailCards: 0 },
+          expiresAt: Date.now() + 60_000,
+        },
+      ];
+    });
+  });
+  // A chip opens one deed.
+  await page.getByTestId('chip-p01').click();
+  await expect(page.getByTestId('deed-preview')).toContainText('Title deed');
+  await page.getByTestId('deed-preview').getByRole('button', { name: 'Close' }).click();
+  // View cards shows both sides, with the deeds' rent tables.
+  await page.getByTestId('view-cards').click();
+  const details = page.getByTestId('trade-details');
+  await expect(details).toContainText('You get');
+  await expect(details).toContainText('You give');
+  await expect(details.getByTestId('deed')).toHaveCount(2);
+  await details.getByTestId('accept-offer').click();
+  await expect(details).toBeHidden();
+  await expect(page.getByTestId('incoming-offer')).toBeHidden();
 });
 
 test('choose bot levels and house rules in setup', async ({ page }) => {

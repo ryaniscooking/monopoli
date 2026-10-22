@@ -58,12 +58,19 @@ export function Deed({
   return (
     <div data-testid="deed" className="overflow-hidden rounded-lg bg-white text-ink shadow">
       <div
-        className={`flex items-start gap-1 px-2 py-1.5 ${darkText ? 'text-ink' : 'text-white'}`}
+        className={`relative m-1.5 mb-0 border border-black/20 px-6 py-1 text-center ${darkText ? 'text-ink' : 'text-white'}`}
         style={{ background: header }}
       >
-        <div className="flex-1 text-sm leading-tight font-bold">{tile.name}</div>
+        {'price' in tile && (
+          <div className="text-[9px] font-semibold tracking-[0.15em] uppercase opacity-80">
+            {t.titleDeed}
+          </div>
+        )}
+        <div data-testid="deed-name" className="text-sm leading-tight font-black uppercase">
+          {tile.name}
+        </div>
         {onClose && (
-          <button aria-label={t.close} className="-m-1 p-1" onClick={onClose}>
+          <button aria-label={t.close} className="absolute top-0.5 right-0.5 p-1" onClick={onClose}>
             <X size={16} />
           </button>
         )}

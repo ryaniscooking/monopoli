@@ -30,6 +30,7 @@ const { values } = parseArgs({
     seed: { type: 'string', default: '1' },
     'max-turns': { type: 'string', default: '3000' },
     smoke: { type: 'boolean', default: false },
+    targets: { type: 'boolean', default: false },
   },
 });
 
@@ -55,7 +56,7 @@ interface Violation {
   errors: string[];
 }
 
-function runGame(map: ResolvedMap, seed: number) {
+function runGame(map: ResolvedMap, seed: number, levels: BotLevel[]) {
   const rng = createSeededRng(seed);
   const seats: SeatInit[] = levels.map((botLevel, i) => ({
     name: map.botNames[i] ?? `Bot ${i + 1}`,
@@ -107,6 +108,42 @@ function runGame(map: ResolvedMap, seed: number) {
 const violations: Violation[] = [];
 const started = performance.now();
 
+// Spec 15.4 sanity targets: 1v1 win rates with seats alternated, draws (turn cap) count as losses.
+if (values.targets) {
+  const n = Number(values.games ?? 400);
+  const matchups: [BotLevel, BotLevel, number][] = [
+    ['hard', 'easy', 0.7],
+    ['normal', 'easy', 0.6],
+    ['hard', 'normal', 0.55],
+  ];
+  let failed = 0;
+  for (const id of mapIds) {
+    const map = resolveMap(RAW_MAPS[id]);
+    for (const [a, b, target] of matchups) {
+      let wins = 0;
+      for (let g = 0; g < n; g++) {
+        const order: BotLevel[] = g % 2 ? [a, b] : [b, a];
+        const r = runGame(map, baseSeed + g, order);
+        if (r.violation)
+          violations.push({ map: id, seed: baseSeed + g, step: r.step ?? -1, errors: r.violation });
+        const winnerLevel = r.winner ? order[Number(r.winner.slice(1))] : null;
+        if (winnerLevel === a) wins++;
+      }
+      const rate = wins / n;
+      const ok = rate >= target;
+      if (!ok) failed++;
+      console.log(
+        `${ok ? '✓' : '✗'} ${id}: ${a} beats ${b} ${(rate * 100).toFixed(1)}% (target ≥ ${Math.round(target * 100)}%)`,
+      );
+    }
+  }
+  if (violations.length > 0) {
+    console.error(`✗ ${violations.length} game(s) broke a rule check`, violations.slice(0, 3));
+    process.exit(1);
+  }
+  process.exit(failed > 0 ? 1 : 0);
+}
+
 for (const id of mapIds) {
   const raw = RAW_MAPS[id];
   if (!raw) {
@@ -121,7 +158,7 @@ for (const id of mapIds) {
 
   for (let g = 0; g < games; g++) {
     const seed = baseSeed + g;
-    const r = runGame(map, seed);
+    const r = runGame(map, seed, levels);
     if (r.violation) {
       violations.push({ map: id, seed, step: r.step ?? -1, errors: r.violation });
       continue;

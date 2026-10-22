@@ -2,18 +2,11 @@ import { getLegalActions, getPendingActors } from '../legal';
 import type { Rng } from '../rng';
 import type { Action, BotLevel, GameState, PlayerId, PublicView, ResolvedMap } from '../types';
 import { decideEasy } from './easy';
+import { decideSmart } from './smart';
 
-/**
- * A bot's next action. Only call it for players returned by botsToAct().
- * Normal and Hard are added in Phase 3 step 5; until then they play like Easy.
- */
+/** A bot's next action (spec 9). Only call it for players returned by botsToAct(). */
 export function decide(view: PublicView, me: PlayerId, level: BotLevel, rng: Rng): Action {
-  switch (level) {
-    case 'easy':
-    case 'normal':
-    case 'hard':
-      return decideEasy(view, me, rng);
-  }
+  return level === 'easy' ? decideEasy(view, me, rng) : decideSmart(view, me, level, rng);
 }
 
 /**

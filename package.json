@@ -15,9 +15,10 @@
     "typecheck": "pnpm -r typecheck && tsc -p tsconfig.json",
     "test": "pnpm -r test",
     "sim": "tsx scripts/sim.ts",
-    "sim:smoke": "tsx scripts/sim.ts --smoke",
+    "sim:smoke": "tsx scripts/sim.ts --smoke --bots easy,normal,hard,normal",
     "maps:validate": "tsx scripts/maps-validate.ts",
-    "build:engine-edge": "tsx scripts/build-engine-for-edge.ts"
+    "build:engine-edge": "tsx scripts/build-engine-for-edge.ts",
+    "sim:targets": "tsx scripts/sim.ts --targets"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

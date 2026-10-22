@@ -149,18 +149,28 @@ describe('playing (spec 10.6)', () => {
     const { roomId } = await startedRoom(alice, [bob]);
     const seen: number[] = [];
     let wake: () => void = () => undefined;
-    bob.client
-      .channel(`test-${roomId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'games', filter: `room_id=eq.${roomId}` },
-        (p) => {
-          seen.push((p.new as { version: number }).version);
-          wake();
-        },
-      )
-      .subscribe();
-    await new Promise((r) => setTimeout(r, 1500)); // let the subscription settle
+    // Wait until the subscription is live, then give the change feed a moment to warm up
+    // (a freshly started stack, e.g. in CI, needs a few seconds).
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('realtime did not subscribe')), 20_000);
+      bob.client
+        .channel(`test-${roomId}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'games', filter: `room_id=eq.${roomId}` },
+          (p) => {
+            seen.push((p.new as { version: number }).version);
+            wake();
+          },
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+    });
+    await new Promise((r) => setTimeout(r, 3000));
     const game = await alice.game(roomId);
     const me = await playerIdOf(roomId, alice.userId);
     const mover = game.state.current === me ? alice : bob;

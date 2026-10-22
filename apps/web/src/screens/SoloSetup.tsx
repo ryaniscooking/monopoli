@@ -209,6 +209,7 @@ export function SoloSetup() {
       </div>
       <HouseRulesSheet
         open={rulesOpen}
+        map={map}
         onClose={() => setRulesOpen(false)}
         house={setup.house}
         onChange={(house) => setup.update({ house, preset: 'house' })}

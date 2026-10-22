@@ -224,3 +224,18 @@ test('choose bot levels and house rules in setup', async ({ page }) => {
   await expect(page.getByTestId('player-p1')).toContainText('H');
   await expect(page.getByTestId('board')).toContainText('Pot');
 });
+
+test('house-rule money options use the chosen map’s currency', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('play-solo').click();
+  await page.getByTestId('map-myanmar').click();
+  await page.getByTestId('rules-house').click();
+  const sheet = page.getByTestId('house-rules');
+  await expect(sheet.getByRole('button', { name: '1.5M Ks' })).toBeVisible(); // starting cash
+  await expect(sheet.getByRole('button', { name: '200K Ks' })).toBeVisible(); // GO salary
+  await expect(sheet.getByRole('button', { name: '50K Ks' })).toBeVisible(); // jail fine
+  await sheet.getByRole('button', { name: 'Close' }).click();
+  await page.getByTestId('map-dubai').click();
+  await page.getByTestId('rules-house').click();
+  await expect(sheet.getByRole('button', { name: 'AED 1,500' })).toBeVisible();
+});

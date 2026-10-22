@@ -1,4 +1,10 @@
-import { OFFICIAL_SETTINGS, type BotLevel, type RuleSettings } from '@monopoli/engine';
+import {
+  formatMoney,
+  OFFICIAL_SETTINGS,
+  type BotLevel,
+  type ResolvedMap,
+  type RuleSettings,
+} from '@monopoli/engine';
 import { Button, Modal } from '../components/ui';
 import { en } from '../strings/en';
 
@@ -32,10 +38,14 @@ type Choice =
   | 'auctionTimerSec'
   | 'turnTimerSec'
   | 'disconnectGraceSec';
-const CHOICES: { key: Choice; options: number[]; label: (n: number) => string; online?: true }[] = [
-  { key: 'startingCash', options: [1000, 1500, 2000, 2500], label: (n) => String(n) },
-  { key: 'goSalary', options: [100, 200, 300, 400], label: (n) => String(n) },
-  { key: 'jailFine', options: [50, 100], label: (n) => String(n) },
+/** Money options are classic units; the label shows them in the map's currency (x multiplier). */
+type Label = (n: number, map: ResolvedMap) => string;
+const money: Label = (n, map) => formatMoney(map, n * map.m, { compact: true });
+
+const CHOICES: { key: Choice; options: number[]; label: Label; online?: true }[] = [
+  { key: 'startingCash', options: [1000, 1500, 2000, 2500], label: money },
+  { key: 'goSalary', options: [100, 200, 300, 400], label: money },
+  { key: 'jailFine', options: [50, 100], label: money },
   {
     key: 'timeLimitMin',
     options: [0, 30, 60, 90, 120],
@@ -58,6 +68,7 @@ const CHOICES: { key: Choice; options: number[]; label: (n: number) => string; o
 export function HouseRulesSheet({
   open,
   onClose,
+  map,
   house,
   onChange,
   onOfficial,
@@ -66,6 +77,8 @@ export function HouseRulesSheet({
 }: {
   open: boolean;
   onClose: () => void;
+  /** Map whose currency the money options are shown in. */
+  map: ResolvedMap;
   house: Partial<RuleSettings>;
   onChange: (house: Partial<RuleSettings>) => void;
   onOfficial: () => void;
@@ -114,7 +127,7 @@ export function HouseRulesSheet({
                 disabled={readOnly && value(key) !== o}
                 onClick={() => set({ [key]: o } as Partial<RuleSettings>)}
               >
-                {label(o)}
+                {label(o, map)}
               </Button>
             ))}
           </div>

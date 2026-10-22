@@ -234,15 +234,18 @@ export function Lobby() {
           </Button>
         </div>
       </div>
-      <HouseRulesSheet
-        open={rulesOpen}
-        onClose={() => setRulesOpen(false)}
-        house={room.settings.house}
-        onChange={(house) => void lobbyActions.setRules({ preset: 'house', house })}
-        onOfficial={() => void lobbyActions.setRules({ preset: 'official', house: {} })}
-        online
-        readOnly={!isHost}
-      />
+      {map && (
+        <HouseRulesSheet
+          open={rulesOpen}
+          map={map}
+          onClose={() => setRulesOpen(false)}
+          house={room.settings.house}
+          onChange={(house) => void lobbyActions.setRules({ preset: 'house', house })}
+          onOfficial={() => void lobbyActions.setRules({ preset: 'official', house: {} })}
+          online
+          readOnly={!isHost}
+        />
+      )}
     </div>
   );
 }

@@ -96,3 +96,7 @@ Record assumptions, deviations from docs/BUILD_SPEC.md, and verified external li
 - **How to Play is rendered from `docs/RULES.md`** (imported as text at build time, simple subset: `##` sections, paragraphs, `-` bullets, `**bold**`).
 - **Smallest screen:** every screen is checked at 667x375 (iPhone SE) by `e2e/fit.spec.ts` (no page scroll, key controls in view, no console errors). The solo setup's Start button moved under the map cards so it is always visible.
 - **Install hint:** numbered steps (Share, Add to Home Screen, Add), only in iPhone Safari (not Chrome/Firefox/Edge on iOS), only on the home screen, until dismissed.
+
+## Tooling (2026-10-23)
+
+- **Docker removed from the dev Mac:** the local Supabase stack is no longer available there; online integration tests run in CI only. Functions are deployed without Docker, bundled on Supabase's side: `pnpm build:engine-edge && supabase functions deploy --use-api --project-ref vbyydanktjjsimztjzlz`. `supabase db push` does not need Docker.

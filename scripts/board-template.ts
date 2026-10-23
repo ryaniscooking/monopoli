@@ -6,6 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { formatMoney, resolveMap, type ResolvedMap, type ResolvedTile } from '@monopoli/engine';
 import { MAP_IDS, RAW_MAPS } from '@monopoli/maps';
+import { ICON_PATHS, transportIcon } from '../apps/web/src/board/iconPaths';
 
 const U = 100;
 const LETTER: Record<string, string> = {
@@ -60,21 +61,7 @@ function textLines(lines: string[], cx: number, y: number, size: number, extra =
     .join('');
 }
 
-// Simple one-color icons, drawn in a 24 x 24 box.
-const ICON = {
-  train:
-    'M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm-.5 3v4h11V6zM8 13.5a1.5 1.5 0 1 0 0 .01zm8 0a1.5 1.5 0 1 0 0 .01zM6 21l2.5-3h1.8L8 21zm12 0-2.5-3h-1.8L16 21z',
-  boat: 'M11 2h2v9l6 1.5-6-.2zM3 14h18l-3 6H6zM11 3 5 12h6z',
-  plane:
-    'M11 2.5a1 1 0 0 1 2 0V9l8 5v2l-8-2.5V18l2.5 2v1.5L12 20.5l-3.5 1V20l2.5-2v-4.5L3 16v-2l8-5z',
-  bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
-  drop: 'M12 2c4 5 7 9 7 12.5a7 7 0 0 1-14 0C5 11 8 7 12 2z',
-  cup: 'M3 19h16v2H3zm1-10h12l-1.5 9h-9zM6.5 3h1.5v4H6.5zm3.5 1h1.5v3H10zM17 10h2.5a2.5 2.5 0 0 1 0 5H16v-1.6h3.5a.9.9 0 0 0 0-1.8H17z',
-  chest:
-    'M3 9a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2H3zm0 3h18v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zm7.5 0v3h3v-3z',
-};
-const transportIcon = (emoji: string) =>
-  /[⛴🚤⛵🛥]/u.test(emoji) ? ICON.boat : /✈/u.test(emoji) ? ICON.plane : ICON.train;
+const ICON = ICON_PATHS;
 
 function icon(d: string, cx: number, cy: number, size: number, color: string) {
   const k = size / 24;
@@ -101,7 +88,7 @@ function tileContent(map: ResolvedMap, t: ResolvedTile): string {
     case 'transport': {
       const name = wrap(t.name, 90, 13);
       return (
-        icon(transportIcon(t.icon), cx, 30, 34, th.primary) +
+        icon(ICON[transportIcon(t.icon)], cx, 30, 34, th.primary) +
         textLines(name.lines, cx, 66, name.size) +
         `<text x="${cx}" y="138" text-anchor="middle" font-size="15" font-weight="800">${esc(money(t.price))}</text>`
       );

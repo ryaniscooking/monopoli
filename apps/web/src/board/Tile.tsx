@@ -6,15 +6,9 @@ import {
   type ResolvedTile,
 } from '@monopoli/engine';
 import { memo, type CSSProperties } from 'react';
+import { BoardIcon } from './BoardIcon';
 import { tileRect } from './geometry';
-
-const ICONS: Record<string, string> = {
-  electricity: '⚡',
-  water: '💧',
-  tax: '💰',
-  chance: '?',
-  chest: '🎁',
-};
+import { transportIcon } from './iconPaths';
 
 interface Props {
   map: ResolvedMap;
@@ -37,47 +31,103 @@ function Corner({
   u: number;
   goAmount: number;
 }) {
-  const big = { fontSize: Math.max(10, u * 0.42) };
-  const small = { fontSize: Math.max(8, u * 0.2) };
+  const small = { fontSize: Math.max(8, u * 0.17) };
+  const label = (text: string, size: number, extra: CSSProperties = {}) => (
+    <div
+      className="leading-none font-black whitespace-nowrap text-primary"
+      style={{ fontSize: Math.max(8, u * size), ...extra }}
+    >
+      {text}
+    </div>
+  );
   switch (tile.type) {
     case 'go':
       return (
-        <>
-          <div className="font-black text-primary" style={big}>
-            GO
+        <div className="relative h-full w-full">
+          <div className="absolute" style={{ left: u * 0.3, top: u * 0.28 }}>
+            {label('GO', 0.5, { transform: 'rotate(-45deg)' })}
           </div>
-          <div style={small} className="leading-tight">
-            Collect {formatMoney(map, goAmount, { compact: true })}
+          <div
+            className="absolute left-0 w-full text-center leading-none font-bold"
+            style={{ ...small, bottom: u * 0.08 }}
+          >
+            COLLECT {formatMoney(map, goAmount, { compact: true })}
           </div>
-          <div className="text-primary" style={{ fontSize: u * 0.4 }}>
-            ←
-          </div>
-        </>
+          <svg
+            aria-hidden
+            className="absolute"
+            viewBox="0 0 60 24"
+            style={{ width: u * 0.6, left: u * 0.7, top: u * 0.95 }}
+          >
+            <path
+              d="M56 12H6m0 0 12-9M6 12l12 9"
+              stroke="var(--m-primary)"
+              strokeWidth="5"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
       );
     case 'jail':
+      // Barred cell toward the board (top-right); "Just visiting" along the outer edges.
       return (
         <div className="relative h-full w-full">
           <div
-            className="absolute top-0 right-0 flex items-center justify-center bg-orange-200 font-bold"
+            className="absolute top-0 right-0 flex items-center justify-center overflow-hidden border-2 border-primary bg-[#F5C99B]"
             style={{
-              width: u * 1.05,
-              height: u * 1.05,
-              fontSize: Math.max(8, u * 0.22),
+              width: u,
+              height: u,
               backgroundImage:
-                'repeating-linear-gradient(90deg, transparent 0 22%, rgba(0,0,0,.35) 22% 27%)',
+                'repeating-linear-gradient(90deg, transparent 0 13%, color-mix(in srgb, var(--m-primary) 75%, transparent) 13% 18%)',
             }}
           >
-            JAIL
+            <span
+              className="font-black text-white"
+              style={{
+                fontSize: Math.max(8, u * 0.22),
+                transform: 'rotate(-45deg)',
+                WebkitTextStroke: `${Math.max(1, u * 0.04)}px var(--m-primary)`,
+                paintOrder: 'stroke',
+              }}
+            >
+              JAIL
+            </span>
           </div>
-          <div className="absolute bottom-0 left-0 leading-none opacity-70" style={small}>
-            Just visiting
+          <div
+            className="absolute leading-none font-extrabold"
+            style={{
+              ...small,
+              left: u * 0.06,
+              top: u * 1.12,
+              transform: 'rotate(-90deg)',
+              transformOrigin: 'left top',
+            }}
+          >
+            JUST
+          </div>
+          <div
+            className="absolute leading-none font-extrabold tracking-tighter"
+            style={{ ...small, right: u * 0.03, bottom: u * 0.08 }}
+          >
+            VISITING
           </div>
         </div>
       );
     case 'free_parking':
       return (
         <>
-          <div style={{ fontSize: u * 0.55 }}>{map.id === 'myanmar' ? '🍵' : '🏝️'}</div>
+          {label('FREE', 0.14)}
+          {label('PARKING', 0.14, { marginTop: u * 0.02 })}
+          {/* The cup only when the name fits on one line (corners are small). */}
+          {!/\s/.test(tile.name) ? (
+            <div style={{ margin: `${u * 0.04}px 0` }}>
+              <BoardIcon name="cup" size={u * 0.4} color="var(--m-primary)" />
+            </div>
+          ) : (
+            <div style={{ height: u * 0.06 }} />
+          )}
           <div className="leading-tight font-semibold" style={small}>
             {tile.name}
           </div>
@@ -86,10 +136,11 @@ function Corner({
     default:
       return (
         <>
-          <div style={{ fontSize: u * 0.55 }}>👮</div>
-          <div className="leading-tight font-semibold" style={small}>
-            {tile.name}
+          {label('GO TO', 0.17)}
+          <div style={{ margin: `${u * 0.06}px 0` }}>
+            <BoardIcon name="officer" size={u * 0.55} color="var(--m-primary)" />
           </div>
+          {label('JAIL', 0.24)}
         </>
       );
   }
@@ -130,16 +181,28 @@ function TileImpl({ map, tile, prop, ownerColor, u, highlight, goAmount }: Props
     transform: `rotate(${r.rotate}deg)`,
   };
   const price = 'price' in tile ? tile.price : tile.type === 'tax' ? tile.amount : null;
+  const iconSize = u * 0.42;
   const icon =
-    tile.type === 'transport'
-      ? tile.icon
-      : tile.type === 'utility'
-        ? ICONS[tile.icon]
-        : tile.type === 'tax'
-          ? ICONS.tax
-          : tile.type === 'card'
-            ? ICONS[tile.deck]
-            : null;
+    tile.type === 'transport' ? (
+      <BoardIcon name={transportIcon(tile.icon)} size={iconSize} color="var(--m-primary)" />
+    ) : tile.type === 'utility' ? (
+      <BoardIcon
+        name={tile.icon === 'water' ? 'drop' : 'bolt'}
+        size={iconSize}
+        color="var(--m-secondary)"
+      />
+    ) : tile.type === 'tax' ? (
+      <span
+        className="flex items-center justify-center rounded-full border border-black/30 bg-accent font-black"
+        style={{
+          width: iconSize,
+          height: iconSize,
+          fontSize: Math.max(7, u * (map.currency.symbol.length > 2 ? 0.12 : 0.17)),
+        }}
+      >
+        {map.currency.symbol}
+      </span>
+    ) : null;
 
   return (
     <div
@@ -177,20 +240,31 @@ function TileImpl({ map, tile, prop, ownerColor, u, highlight, goAmount }: Props
               />
             )}
           </div>
+        ) : tile.type === 'card' ? (
+          // Chance / Community Chest: the big icon says it all (the name is for screen readers).
+          <div className="flex w-full flex-1 items-center justify-center">
+            {tile.deck === 'chance' ? (
+              <span className="leading-none font-black text-accent" style={{ fontSize: u * 0.75 }}>
+                ?
+              </span>
+            ) : (
+              <BoardIcon name="chest" size={u * 0.62} color="var(--m-secondary)" />
+            )}
+            <span className="sr-only">{tile.name}</span>
+          </div>
         ) : (
-          <div
-            className={`shrink-0 ${tile.type === 'card' && tile.deck === 'chance' ? 'font-black text-accent' : ''}`}
-            style={{ fontSize: u * 0.42, lineHeight: 1.1, marginTop: u * 0.06 }}
-          >
+          <div className="flex shrink-0 justify-center" style={{ marginTop: u * 0.1 }}>
             {icon}
           </div>
         )}
-        <div
-          className="min-h-0 w-full flex-1 overflow-hidden px-[1px] font-medium break-words hyphens-auto"
-          style={{ fontSize: nameSize, marginTop: u * 0.04 }}
-        >
-          {tile.name}
-        </div>
+        {tile.type !== 'card' && (
+          <div
+            className="min-h-0 w-full flex-1 overflow-hidden px-[1px] font-medium break-words hyphens-auto"
+            style={{ fontSize: nameSize, marginTop: u * 0.04 }}
+          >
+            {tile.name}
+          </div>
+        )}
         {price !== null && (
           <div
             className="tabular mb-[2px] shrink-0 font-semibold whitespace-nowrap"

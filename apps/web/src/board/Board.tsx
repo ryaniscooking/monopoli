@@ -7,6 +7,7 @@ import { useTable } from '../game/table';
 import { en } from '../strings/en';
 import { useSettings } from '../store/settings';
 import { useUi } from '../store/ui';
+import { BoardIcon } from './BoardIcon';
 import { Dice } from './Dice';
 import { tileRect, tokenSpot } from './geometry';
 import { Tile } from './Tile';
@@ -203,36 +204,85 @@ export function Board() {
             />
           ))}
 
-          {/* Board center: title, dice, decks */}
+          {/* Board center (as in docs/board-templates): decks, title plaque, dice, status */}
           <div
-            className="absolute flex flex-col items-center justify-center gap-[3%] text-center"
-            style={{ left: 1.5 * u, top: 1.5 * u, width: 9 * u, height: 9 * u }}
+            className="pointer-events-none absolute rounded-[1.5%] border-2 border-primary/25"
+            style={{ left: 1.65 * u, top: 1.65 * u, width: 8.7 * u, height: 8.7 * u }}
+          />
+          <Deck
+            u={u}
+            x={3.8}
+            y={3.1}
+            rotate={-14}
+            color="var(--m-primary)"
+            fill="#FFF1EC"
+            label={map.decks.chance.name}
           >
-            <div className="font-black tracking-wide text-primary" style={{ fontSize: u * 0.7 }}>
+            <span className="leading-none font-black text-accent" style={{ fontSize: u * 0.5 }}>
+              ?
+            </span>
+          </Deck>
+          <Deck
+            u={u}
+            x={8.2}
+            y={3.1}
+            rotate={12}
+            color="var(--m-secondary)"
+            fill="#EEF9F3"
+            label={map.decks.chest.name}
+          >
+            <BoardIcon name="chest" size={u * 0.38} color="var(--m-secondary)" />
+          </Deck>
+          <div
+            data-testid="title-plaque"
+            className="absolute flex flex-col items-center justify-center rounded-[10%/22%] bg-primary text-white"
+            style={{
+              left: 3.55 * u,
+              top: 4.35 * u,
+              width: 4.9 * u,
+              height: 1.75 * u,
+              border: `${Math.max(2, u * 0.08)}px solid var(--m-accent)`,
+              boxShadow: `inset 0 0 0 ${Math.max(1, u * 0.1)}px var(--m-primary), inset 0 0 0 ${Math.max(2, u * 0.12)}px rgba(255,255,255,.18)`,
+            }}
+          >
+            <img
+              src="/logo.png"
+              alt=""
+              draggable={false}
+              style={{ height: u * 0.5, marginBottom: -u * 0.06 }}
+            />
+            <div
+              className="leading-none font-black"
+              style={{ fontSize: u * 0.42, letterSpacing: u * 0.02 }}
+            >
+              MONOPOLI
+            </div>
+            <div
+              className="leading-tight font-extrabold text-accent"
+              style={{ fontSize: u * 0.26, letterSpacing: u * 0.06, marginTop: u * 0.04 }}
+            >
               {map.name.toUpperCase()}
             </div>
-            <Dice dice={dice} rolling={rolling} size={u * 1.15} />
-            <div className="flex gap-[6%]" style={{ fontSize: Math.max(8, u * 0.24) }}>
-              {(['chance', 'chest'] as const).map((d) => (
-                <div
-                  key={d}
-                  className="rounded-md border-2 border-dashed border-black/25 px-2 py-1 font-semibold opacity-80"
-                >
-                  {map.decks[d].name}
-                </div>
-              ))}
-            </div>
-            <div className="opacity-60" style={{ fontSize: Math.max(8, u * 0.24) }}>
-              Round {view.round}
+          </div>
+          <div
+            className="absolute flex flex-col items-center justify-start gap-[2%] text-center"
+            style={{ left: 2.5 * u, top: 6.55 * u, width: 7 * u, height: 3.5 * u }}
+          >
+            <Dice dice={dice} rolling={rolling} size={u * 1.05} />
+            <div
+              className="flex flex-wrap items-center justify-center gap-x-[6%] rounded-full bg-white/60 px-[5%] py-[1%] font-semibold"
+              style={{ fontSize: Math.max(8, u * 0.24), marginTop: u * 0.12 }}
+            >
+              <span>Round {view.round}</span>
               {view.settings.freeParkingPot && (
-                <> · {en.game.pot(formatMoney(map, view.parkingPot))}</>
+                <span>{en.game.pot(formatMoney(map, view.parkingPot))}</span>
               )}
+              <TimeLeft
+                endsAt={view.endsAt}
+                lastRound={view.lastRoundPending}
+                size={Math.max(8, u * 0.24)}
+              />
             </div>
-            <TimeLeft
-              endsAt={view.endsAt}
-              lastRound={view.lastRoundPending}
-              size={Math.max(8, u * 0.26)}
-            />
           </div>
 
           {alive.map((p) => {
@@ -345,6 +395,57 @@ function TimeLeft({
       style={{ fontSize: size }}
     >
       {lastRound || left === 0 ? en.game.lastRound : en.game.timeLeft(`${mm}:${ss}`)}
+    </div>
+  );
+}
+
+/** A tilted card deck in the board center. */
+function Deck({
+  u,
+  x,
+  y,
+  rotate,
+  color,
+  fill,
+  label,
+  children,
+}: {
+  u: number;
+  x: number;
+  y: number;
+  rotate: number;
+  color: string;
+  fill: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const w = 2.3 * u;
+  const h = 1.3 * u;
+  // Fit the longest word of the deck name (decorative label, may go down to 7 px).
+  const longest = Math.max(...label.split(/\s+/).map((word) => word.length));
+  const fontSize = Math.max(7, Math.min(u * 0.19, (w * 0.86) / (longest * 0.72)));
+  return (
+    <div
+      data-testid="deck"
+      className="absolute flex flex-col items-center justify-center rounded-[8%/12%] text-center shadow-sm"
+      style={{
+        left: x * u - w / 2,
+        top: y * u - h / 2,
+        width: w,
+        height: h,
+        transform: `rotate(${rotate}deg)`,
+        background: fill,
+        border: `${Math.max(2, u * 0.05)}px solid ${color}`,
+        color,
+      }}
+    >
+      <div
+        className="leading-tight font-extrabold uppercase"
+        style={{ fontSize, maxWidth: w * 0.92 }}
+      >
+        {label}
+      </div>
+      <div style={{ marginTop: u * 0.06 }}>{children}</div>
     </div>
   );
 }

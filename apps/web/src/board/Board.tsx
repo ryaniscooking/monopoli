@@ -46,6 +46,8 @@ export function Board() {
   const box = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [side, setSide] = useState(0);
+  /** The board's whole column (the zoomed board may fill all of it). */
+  const [area, setArea] = useState({ w: 0, h: 0 });
   const [cam, setCam] = useState<Camera>({ s: 1, x: 0, y: 0 });
   const [smooth, setSmooth] = useState(false);
   const camRef = useRef(cam);
@@ -61,15 +63,29 @@ export function Board() {
       if (!entry) return;
       const { width, height } = entry.contentRect;
       setSide(Math.floor(Math.min(width, height)));
+      setArea({ w: width, h: height });
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
+  // The square board sits centered in its column. Zoomed in, it may be dragged anywhere until
+  // its edge reaches the middle of the column, so any tile (corners too) can be centered.
+  const offX = (area.w - side) / 2;
+  const offY = (area.h - side) / 2;
   const fit = (c: Camera): Camera => {
-    const min = side - side * c.s;
-    return { s: c.s, x: clamp(c.x, min, 0), y: clamp(c.y, min, 0) };
+    if (c.s <= 1.001) return { s: 1, x: 0, y: 0 };
+    const midX = area.w / 2 - offX;
+    const midY = area.h / 2 - offY;
+    return {
+      s: c.s,
+      x: clamp(c.x, midX - side * c.s, midX),
+      y: clamp(c.y, midY - side * c.s, midY),
+    };
   };
+  /** Camera that puts board point (bx, by) (in px at scale 1) in the middle of the column. */
+  const centerOn = (bx: number, by: number, s: number): Camera =>
+    fit({ s, x: area.w / 2 - offX - bx * s, y: area.h / 2 - offY - by * s });
 
   // Deselecting (closing the deed, double-tap) zooms back out.
   useEffect(
@@ -93,7 +109,7 @@ export function Board() {
     const cx = (r.x + r.w / 2) * u;
     const cy = (r.y + r.h / 2) * u;
     setSmooth(true);
-    setCam(fit({ s, x: side / 2 - cx * s, y: side / 2 - cy * s }));
+    setCam(centerOn(cx, cy, s));
     selectTile(tileId);
   };
 
@@ -131,7 +147,8 @@ export function Board() {
       },
     },
     {
-      target: viewport,
+      // The whole column takes gestures, so a zoomed board can be dragged from anywhere.
+      target: box,
       eventOptions: { passive: false },
       drag: { filterTaps: true, pointer: { touch: true } },
       pinch: { scaleBounds: { min: 1, max: 3 }, from: () => [camRef.current.s, 0] },
@@ -151,7 +168,7 @@ export function Board() {
     const spot = tokenSpot(at, false, 0, 1);
     const s = camRef.current.s;
     setSmooth(true);
-    setCam(fit({ s, x: side / 2 - spot.x * u * s, y: side / 2 - spot.y * u * s }));
+    setCam(centerOn(spot.x * u, spot.y * u, s));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only token moves should pan
   }, [pos]);
 
@@ -179,11 +196,16 @@ export function Board() {
   const tokenSize = u * 0.55;
 
   // 3D table view: the board leans back on the table; it lies flat while zoomed in.
-  const tilted = tiltSetting && cam.s <= 1.02;
+  const zoomed = cam.s > 1.02;
+  const tilted = tiltSetting && !zoomed;
   const edge = Math.max(3, u * 0.14);
 
   return (
-    <div ref={box} className="flex h-full w-full items-center justify-center">
+    <div
+      ref={box}
+      className="flex h-full w-full items-center justify-center overflow-hidden rounded-lg"
+      style={{ touchAction: 'none' }}
+    >
       <div
         className="relative"
         style={{ width: side, height: side, perspective: tiltSetting ? side * 2.4 : undefined }}
@@ -192,7 +214,8 @@ export function Board() {
           ref={viewport}
           data-testid="board"
           data-tilted={tilted || undefined}
-          className="relative overflow-hidden rounded-lg"
+          // Zoomed in, the board is not clipped to its square: it fills the whole column.
+          className={`relative rounded-lg ${zoomed ? 'overflow-visible' : 'overflow-hidden'}`}
           style={{
             width: side,
             height: side,
@@ -204,9 +227,11 @@ export function Board() {
               : 'none',
             transition: reduced ? undefined : 'transform 450ms ease, box-shadow 450ms ease',
             // Board thickness and its shadow on the table.
-            boxShadow: tiltSetting
-              ? `0 ${edge}px 0 color-mix(in srgb, var(--m-board) 55%, #000), 0 ${edge * 3}px ${edge * 4}px rgba(0,0,0,.5)`
-              : '0 4px 6px rgba(0,0,0,.15)',
+            boxShadow: zoomed
+              ? 'none'
+              : tiltSetting
+                ? `0 ${edge}px 0 color-mix(in srgb, var(--m-board) 55%, #000), 0 ${edge * 3}px ${edge * 4}px rgba(0,0,0,.5)`
+                : '0 4px 6px rgba(0,0,0,.15)',
           }}
         >
           <div

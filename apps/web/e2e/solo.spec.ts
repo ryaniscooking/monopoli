@@ -70,8 +70,11 @@ test('a solo game starts with the human and bots; the board fits the screen', as
   await expect(page.getByTestId('player-p3')).toBeVisible(); // 3 bots by default
   const board = await page.getByTestId('board').boundingBox();
   expect(board).not.toBeNull();
-  expect(board!.height).toBeLessThanOrEqual(390);
-  expect(Math.abs(board!.width - board!.height)).toBeLessThan(2);
+  // In the 3D table view the board leans back, so its on-screen box is not square; it must
+  // still sit fully inside the screen.
+  expect(board!.y).toBeGreaterThanOrEqual(0);
+  expect(board!.y + board!.height).toBeLessThanOrEqual(390);
+  expect(board!.x + board!.width).toBeLessThanOrEqual(844);
   // Bots take their turns until it is ours.
   await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
 });
@@ -273,4 +276,22 @@ test('house-rule money options use the chosen map’s currency', async ({ page }
   await page.getByTestId('map-dubai').click();
   await page.getByTestId('rules-house').click();
   await expect(sheet.getByRole('button', { name: 'AED 1,500' })).toBeVisible();
+});
+
+test('3D table view: the board leans back and lies flat while zoomed in', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'monopoli:settings',
+      JSON.stringify({ state: { speed: 'fast', installHintDismissed: true }, version: 0 }),
+    );
+  });
+  await startSolo(page, 'dubai');
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  const board = page.getByTestId('board');
+  await expect(board).toHaveAttribute('data-tilted', 'true');
+  await page.locator('[data-tile="p01"]').tap();
+  await expect(page.getByTestId('deed')).toContainText('Deira');
+  await expect(board).not.toHaveAttribute('data-tilted');
+  await page.getByTestId('deed').getByRole('button', { name: 'Close' }).click();
+  await expect(board).toHaveAttribute('data-tilted', 'true');
 });

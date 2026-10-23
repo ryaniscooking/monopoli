@@ -8,6 +8,7 @@ import { DebtPanel, GameOver, LogSheet, MenuSheet } from '../game/Panels';
 import { TradeSheet } from '../game/Trade';
 import { PlayerRail } from '../game/PlayerRail';
 import { useTable } from '../game/table';
+import { useSettings } from '../store/settings';
 import { useUi } from '../store/ui';
 
 /** Landscape game layout (spec 12.3): players | board | actions. */
@@ -17,6 +18,7 @@ export function Game() {
   const me = useTable((s) => s.client?.me);
   const hasClient = useTable((s) => s.client !== null);
   const go = useUi((s) => s.go);
+  const table = useSettings((s) => s.boardTilt);
   const selectTile = useUi((s) => s.selectTile);
 
   // A buy decision shows that tile's deed.
@@ -32,7 +34,10 @@ export function Game() {
   if (!hasClient) return null;
 
   return (
-    <div className="safe flex h-full gap-2 bg-primary" data-testid="game-screen">
+    <div
+      className={`safe flex h-full gap-2 bg-primary ${table ? 'table-surface' : ''}`}
+      data-testid="game-screen"
+    >
       <div className="w-[22%] min-w-0">
         <PlayerRail />
       </div>

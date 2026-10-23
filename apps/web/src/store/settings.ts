@@ -11,6 +11,8 @@ export interface SettingsState {
   followCamera: boolean;
   /** Small letters on color groups for color-blind players (spec 12.9). */
   groupMarkers: boolean;
+  /** 3D table view: the board leans back on a table (flat while zoomed in). */
+  boardTilt: boolean;
   set: (patch: Partial<Omit<SettingsState, 'set'>>) => void;
 }
 
@@ -51,6 +53,7 @@ export const useSettings = create<SettingsState>()(
       sound: true,
       followCamera: true,
       groupMarkers: true,
+      boardTilt: true,
       set: (patch) => set(patch),
     }),
     { name: 'monopoli:settings', storage: safeStorage },

@@ -186,6 +186,7 @@ export const en = {
     sound: 'Sound effects',
     followCamera: 'Camera follows the moving token when zoomed in',
     groupMarkers: 'Color-blind markers (letters on color groups)',
+    boardTilt: '3D table view (board leans back; flat when zoomed in)',
     display: 'Display',
     storage:
       'Solo games are saved on this device after every move. iPhone may clear saved data for apps you have not opened in a while.',

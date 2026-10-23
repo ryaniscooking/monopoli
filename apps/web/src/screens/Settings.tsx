@@ -70,6 +70,16 @@ export function Settings() {
             />
             {s.groupMarkers}
           </label>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              data-testid="setting-boardTilt"
+              className="h-5 w-5"
+              checked={settings.boardTilt}
+              onChange={(e) => settings.set({ boardTilt: e.target.checked })}
+            />
+            {s.boardTilt}
+          </label>
           <p className="mt-3 text-xs opacity-70">{s.storage}</p>
         </div>
       </div>

@@ -19,6 +19,10 @@ interface Camera {
   y: number;
 }
 
+/** How far the board leans back in the 3D table view. */
+const TILT_DEG = 22;
+const TILT_SCALE = 0.91;
+
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /**
@@ -35,6 +39,7 @@ export function Board() {
   const card = useTable((s) => s.card);
   const floats = useTable((s) => s.floats);
   const reduced = useSettings((st) => st.reducedMotion);
+  const tiltSetting = useSettings((st) => st.boardTilt);
   const selectTile = useUi((s) => s.selectTile);
   const selected = useUi((s) => s.selectedTile);
 
@@ -173,179 +178,202 @@ export function Board() {
   const goAmount = view.settings.goSalary * map.m;
   const tokenSize = u * 0.55;
 
+  // 3D table view: the board leans back on the table; it lies flat while zoomed in.
+  const tilted = tiltSetting && cam.s <= 1.02;
+  const edge = Math.max(3, u * 0.14);
+
   return (
     <div ref={box} className="flex h-full w-full items-center justify-center">
       <div
-        ref={viewport}
-        data-testid="board"
-        className="relative overflow-hidden rounded-lg shadow-md"
-        style={{ width: side, height: side, touchAction: 'none' }}
+        className="relative"
+        style={{ width: side, height: side, perspective: tiltSetting ? side * 2.4 : undefined }}
       >
         <div
-          className="absolute top-0 left-0 bg-board"
+          ref={viewport}
+          data-testid="board"
+          data-tilted={tilted || undefined}
+          className="relative overflow-hidden rounded-lg"
           style={{
             width: side,
             height: side,
-            transformOrigin: '0 0',
-            transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`,
-            transition: smooth ? 'transform 300ms ease-out' : undefined,
+            touchAction: 'none',
+            transformOrigin: '50% 55%',
+            // Scaled so the near (wider) edge stays inside the board's own column.
+            transform: tilted
+              ? `translateY(-2%) scale(${TILT_SCALE}) rotateX(${TILT_DEG}deg)`
+              : 'none',
+            transition: reduced ? undefined : 'transform 450ms ease, box-shadow 450ms ease',
+            // Board thickness and its shadow on the table.
+            boxShadow: tiltSetting
+              ? `0 ${edge}px 0 color-mix(in srgb, var(--m-board) 55%, #000), 0 ${edge * 3}px ${edge * 4}px rgba(0,0,0,.5)`
+              : '0 4px 6px rgba(0,0,0,.15)',
           }}
         >
-          {map.tiles.map((t) => (
-            <Tile
-              key={t.id}
-              map={map}
-              tile={t}
-              prop={view.properties[t.id]}
-              ownerColor={owners[t.id] ?? null}
-              u={u}
-              highlight={landed === t.index || selected === t.id}
-              goAmount={goAmount}
-            />
-          ))}
-
-          {/* Board center (as in docs/board-templates): decks, title plaque, dice, status */}
           <div
-            className="pointer-events-none absolute rounded-[1.5%] border-2 border-primary/25"
-            style={{ left: 1.65 * u, top: 1.65 * u, width: 8.7 * u, height: 8.7 * u }}
-          />
-          <Deck
-            u={u}
-            x={3.8}
-            y={3.1}
-            rotate={-14}
-            color="var(--m-primary)"
-            fill="#FFF1EC"
-            label={map.decks.chance.name}
-          >
-            <span className="leading-none font-black text-accent" style={{ fontSize: u * 0.5 }}>
-              ?
-            </span>
-          </Deck>
-          <Deck
-            u={u}
-            x={8.2}
-            y={3.1}
-            rotate={12}
-            color="var(--m-secondary)"
-            fill="#EEF9F3"
-            label={map.decks.chest.name}
-          >
-            <BoardIcon name="chest" size={u * 0.38} color="var(--m-secondary)" />
-          </Deck>
-          <div
-            data-testid="title-plaque"
-            className="absolute flex flex-col items-center justify-center rounded-[10%/22%] bg-primary text-white"
+            className="absolute top-0 left-0 bg-board"
             style={{
-              left: 3.55 * u,
-              top: 4.35 * u,
-              width: 4.9 * u,
-              height: 1.75 * u,
-              border: `${Math.max(2, u * 0.08)}px solid var(--m-accent)`,
-              boxShadow: `inset 0 0 0 ${Math.max(1, u * 0.1)}px var(--m-primary), inset 0 0 0 ${Math.max(2, u * 0.12)}px rgba(255,255,255,.18)`,
+              width: side,
+              height: side,
+              transformOrigin: '0 0',
+              transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`,
+              transition: smooth ? 'transform 300ms ease-out' : undefined,
             }}
           >
-            <img
-              src="/logo.png"
-              alt=""
-              draggable={false}
-              style={{ height: u * 0.5, marginBottom: -u * 0.06 }}
-            />
-            <div
-              className="leading-none font-black"
-              style={{ fontSize: u * 0.42, letterSpacing: u * 0.02 }}
-            >
-              MONOPOLI
-            </div>
-            <div
-              className="leading-tight font-extrabold text-accent"
-              style={{ fontSize: u * 0.26, letterSpacing: u * 0.06, marginTop: u * 0.04 }}
-            >
-              {map.name.toUpperCase()}
-            </div>
-          </div>
-          <div
-            className="absolute flex flex-col items-center justify-start gap-[2%] text-center"
-            style={{ left: 2.5 * u, top: 6.55 * u, width: 7 * u, height: 3.5 * u }}
-          >
-            <Dice dice={dice} rolling={rolling} size={u * 1.05} />
-            <div
-              className="flex flex-wrap items-center justify-center gap-x-[6%] rounded-full bg-white/60 px-[5%] py-[1%] font-semibold"
-              style={{ fontSize: Math.max(8, u * 0.24), marginTop: u * 0.12 }}
-            >
-              <span>Round {view.round}</span>
-              {view.settings.freeParkingPot && (
-                <span>{en.game.pot(formatMoney(map, view.parkingPot))}</span>
-              )}
-              <TimeLeft
-                endsAt={view.endsAt}
-                lastRound={view.lastRoundPending}
-                size={Math.max(8, u * 0.24)}
+            {map.tiles.map((t) => (
+              <Tile
+                key={t.id}
+                map={map}
+                tile={t}
+                prop={view.properties[t.id]}
+                ownerColor={owners[t.id] ?? null}
+                u={u}
+                highlight={landed === t.index || selected === t.id}
+                goAmount={goAmount}
               />
-            </div>
-          </div>
+            ))}
 
-          {alive.map((p) => {
-            const key = spotKey(p);
-            const slot = seen.get(key) ?? 0;
-            seen.set(key, slot + 1);
-            const spot = tokenSpot(pos[p.id] ?? p.position, p.inJail, slot, counts.get(key) ?? 1);
-            const token = map.tokens.find((t) => t.id === p.token);
-            const current = p.id === view.current;
-            return (
-              <motion.div
-                key={p.id}
-                data-testid={`token-${p.id}`}
-                className={`absolute flex items-center justify-center rounded-full bg-white ${current ? 'z-20' : 'z-10'}`}
-                style={{
-                  width: tokenSize,
-                  height: tokenSize,
-                  marginLeft: -tokenSize / 2,
-                  marginTop: -tokenSize / 2,
-                  border: `${Math.max(2, u * 0.07)}px solid ${p.color}`,
-                  fontSize: tokenSize * 0.58,
-                  boxShadow: current ? `0 0 0 2px var(--m-accent)` : undefined,
-                }}
-                initial={false}
-                animate={{ left: spot.x * u, top: spot.y * u, scale: current ? 1.12 : 1 }}
-                transition={{ duration: 0.13, ease: 'easeOut' }}
+            {/* Board center (as in docs/board-templates): decks, title plaque, dice, status */}
+            <div
+              className="pointer-events-none absolute rounded-[1.5%] border-2 border-primary/25"
+              style={{ left: 1.65 * u, top: 1.65 * u, width: 8.7 * u, height: 8.7 * u }}
+            />
+            <Deck
+              u={u}
+              x={3.8}
+              y={3.1}
+              rotate={-14}
+              color="var(--m-primary)"
+              fill="#FFF1EC"
+              label={map.decks.chance.name}
+            >
+              <span className="leading-none font-black text-accent" style={{ fontSize: u * 0.5 }}>
+                ?
+              </span>
+            </Deck>
+            <Deck
+              u={u}
+              x={8.2}
+              y={3.1}
+              rotate={12}
+              color="var(--m-secondary)"
+              fill="#EEF9F3"
+              label={map.decks.chest.name}
+            >
+              <BoardIcon name="chest" size={u * 0.38} color="var(--m-secondary)" />
+            </Deck>
+            <div
+              data-testid="title-plaque"
+              className="absolute flex flex-col items-center justify-center rounded-[10%/22%] bg-primary text-white"
+              style={{
+                left: 3.55 * u,
+                top: 4.35 * u,
+                width: 4.9 * u,
+                height: 1.75 * u,
+                border: `${Math.max(2, u * 0.08)}px solid var(--m-accent)`,
+                boxShadow: `inset 0 0 0 ${Math.max(1, u * 0.1)}px var(--m-primary), inset 0 0 0 ${Math.max(2, u * 0.12)}px rgba(255,255,255,.18)`,
+              }}
+            >
+              <img
+                src="/logo.png"
+                alt=""
+                draggable={false}
+                style={{ height: u * 0.5, marginBottom: -u * 0.06 }}
+              />
+              <div
+                className="leading-none font-black"
+                style={{ fontSize: u * 0.42, letterSpacing: u * 0.02 }}
               >
-                {/* A little hop on every step (keyed by the drawn position). */}
-                <motion.div
-                  key={pos[p.id] ?? p.position}
-                  initial={reduced ? false : { y: -tokenSize * 0.35 }}
-                  animate={{ y: 0 }}
-                  transition={{ type: 'spring', stiffness: 700, damping: 18 }}
-                >
-                  <TokenIcon token={token} color={p.color} size={tokenSize * 0.72} />
-                </motion.div>
-                <AnimatePresence>
-                  {floats
-                    .filter((f) => f.player === p.id)
-                    .slice(-1)
-                    .map((f) => (
-                      <motion.div
-                        key={f.id}
-                        data-testid="board-float"
-                        className={`pointer-events-none absolute left-1/2 rounded bg-white/95 px-1 font-bold whitespace-nowrap shadow ${
-                          f.amount > 0 ? 'text-green-700' : 'text-red-700'
-                        }`}
-                        style={{ fontSize: Math.max(9, u * 0.28), bottom: '100%', x: '-50%' }}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: -2 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.35 }}
-                      >
-                        {f.amount > 0 ? '+' : '−'}
-                        {formatMoney(map, Math.abs(f.amount), { compact: true })}
-                      </motion.div>
-                    ))}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </div>
+                MONOPOLI
+              </div>
+              <div
+                className="leading-tight font-extrabold text-accent"
+                style={{ fontSize: u * 0.26, letterSpacing: u * 0.06, marginTop: u * 0.04 }}
+              >
+                {map.name.toUpperCase()}
+              </div>
+            </div>
+            <div
+              className="absolute flex flex-col items-center justify-start gap-[2%] text-center"
+              style={{ left: 2.5 * u, top: 6.55 * u, width: 7 * u, height: 3.5 * u }}
+            >
+              <Dice dice={dice} rolling={rolling} size={u * 1.05} />
+              <div
+                className="flex flex-wrap items-center justify-center gap-x-[6%] rounded-full bg-white/60 px-[5%] py-[1%] font-semibold"
+                style={{ fontSize: Math.max(8, u * 0.24), marginTop: u * 0.12 }}
+              >
+                <span>Round {view.round}</span>
+                {view.settings.freeParkingPot && (
+                  <span>{en.game.pot(formatMoney(map, view.parkingPot))}</span>
+                )}
+                <TimeLeft
+                  endsAt={view.endsAt}
+                  lastRound={view.lastRoundPending}
+                  size={Math.max(8, u * 0.24)}
+                />
+              </div>
+            </div>
 
+            {alive.map((p) => {
+              const key = spotKey(p);
+              const slot = seen.get(key) ?? 0;
+              seen.set(key, slot + 1);
+              const spot = tokenSpot(pos[p.id] ?? p.position, p.inJail, slot, counts.get(key) ?? 1);
+              const token = map.tokens.find((t) => t.id === p.token);
+              const current = p.id === view.current;
+              return (
+                <motion.div
+                  key={p.id}
+                  data-testid={`token-${p.id}`}
+                  className={`absolute flex items-center justify-center rounded-full bg-white ${current ? 'z-20' : 'z-10'}`}
+                  style={{
+                    width: tokenSize,
+                    height: tokenSize,
+                    marginLeft: -tokenSize / 2,
+                    marginTop: -tokenSize / 2,
+                    border: `${Math.max(2, u * 0.07)}px solid ${p.color}`,
+                    fontSize: tokenSize * 0.58,
+                    boxShadow: current ? `0 0 0 2px var(--m-accent)` : undefined,
+                  }}
+                  initial={false}
+                  animate={{ left: spot.x * u, top: spot.y * u, scale: current ? 1.12 : 1 }}
+                  transition={{ duration: 0.13, ease: 'easeOut' }}
+                >
+                  {/* A little hop on every step (keyed by the drawn position). */}
+                  <motion.div
+                    key={pos[p.id] ?? p.position}
+                    initial={reduced ? false : { y: -tokenSize * 0.35 }}
+                    animate={{ y: 0 }}
+                    transition={{ type: 'spring', stiffness: 700, damping: 18 }}
+                  >
+                    <TokenIcon token={token} color={p.color} size={tokenSize * 0.72} />
+                  </motion.div>
+                  <AnimatePresence>
+                    {floats
+                      .filter((f) => f.player === p.id)
+                      .slice(-1)
+                      .map((f) => (
+                        <motion.div
+                          key={f.id}
+                          data-testid="board-float"
+                          className={`pointer-events-none absolute left-1/2 rounded bg-white/95 px-1 font-bold whitespace-nowrap shadow ${
+                            f.amount > 0 ? 'text-green-700' : 'text-red-700'
+                          }`}
+                          style={{ fontSize: Math.max(9, u * 0.28), bottom: '100%', x: '-50%' }}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: -2 }}
+                          exit={{ opacity: 0, y: -12 }}
+                          transition={{ duration: 0.35 }}
+                        >
+                          {f.amount > 0 ? '+' : '−'}
+                          {formatMoney(map, Math.abs(f.amount), { compact: true })}
+                        </motion.div>
+                      ))}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
         {/* Card draw reveal (spec 12.6) */}
         <AnimatePresence>
           {card && (

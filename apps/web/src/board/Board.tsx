@@ -1,6 +1,6 @@
 import { useGesture } from '@use-gesture/react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { formatMoney } from '@monopoli/engine';
 import { useNow } from '../components/useNow';
 import { useTable } from '../game/table';
@@ -29,7 +29,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * Square board with tap-to-zoom, pinch (1x-3x), drag to pan and double-tap to reset
  * (spec 12.4). Works while other players take their turns.
  */
-export function Board() {
+export function Board({ home }: { home?: RefObject<HTMLDivElement | null> }) {
   const map = useTable((s) => s.map);
   const view = useTable((s) => s.view);
   const pos = useTable((s) => s.pos);
@@ -45,9 +45,13 @@ export function Board() {
 
   const box = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
-  const [side, setSide] = useState(0);
-  /** The board's whole column (the zoomed board may fill all of it). */
-  const [area, setArea] = useState({ w: 0, h: 0 });
+  const stage = useRef<HTMLDivElement>(null);
+  /**
+   * Where the board rests: the `home` area (the middle column), in this layer's coordinates.
+   * The layer itself covers the whole game screen, so a zoomed board continues under the rails.
+   */
+  const [rest, setRest] = useState({ x: 0, y: 0, side: 0 });
+  const side = rest.side;
   const [cam, setCam] = useState<Camera>({ s: 1, x: 0, y: 0 });
   const [smooth, setSmooth] = useState(false);
   const camRef = useRef(cam);
@@ -59,33 +63,37 @@ export function Board() {
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      if (!entry) return;
-      const { width, height } = entry.contentRect;
-      setSide(Math.floor(Math.min(width, height)));
-      setArea({ w: width, h: height });
-    });
+    const measure = () => {
+      const outer = el.getBoundingClientRect();
+      const inner = home?.current?.getBoundingClientRect() ?? outer;
+      const sz = Math.floor(Math.min(inner.width, inner.height));
+      setRest({
+        x: inner.left - outer.left + (inner.width - sz) / 2,
+        y: inner.top - outer.top + (inner.height - sz) / 2,
+        side: sz,
+      });
+    };
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
+    if (home?.current) ro.observe(home.current);
+    measure();
     return () => ro.disconnect();
-  }, []);
+  }, [home]);
 
-  // The square board sits centered in its column. Zoomed in, it may be dragged anywhere until
-  // its edge reaches the middle of the column, so any tile (corners too) can be centered.
-  const offX = (area.w - side) / 2;
-  const offY = (area.h - side) / 2;
+  // Zoomed in, the board may be dragged until its edge reaches the middle of its resting square,
+  // so any tile (corners too) can be centered. The camera works in the board's own plane.
   const fit = (c: Camera): Camera => {
     if (c.s <= 1.001) return { s: 1, x: 0, y: 0 };
-    const midX = area.w / 2 - offX;
-    const midY = area.h / 2 - offY;
+    const mid = side / 2;
     return {
       s: c.s,
-      x: clamp(c.x, midX - side * c.s, midX),
-      y: clamp(c.y, midY - side * c.s, midY),
+      x: clamp(c.x, mid - side * c.s, mid),
+      y: clamp(c.y, mid - side * c.s, mid),
     };
   };
-  /** Camera that puts board point (bx, by) (in px at scale 1) in the middle of the column. */
+  /** Camera that puts board point (bx, by) (px at scale 1) in the middle of the resting square. */
   const centerOn = (bx: number, by: number, s: number): Camera =>
-    fit({ s, x: area.w / 2 - offX - bx * s, y: area.h / 2 - offY - by * s });
+    fit({ s, x: side / 2 - bx * s, y: side / 2 - by * s });
 
   // Deselecting (closing the deed, double-tap) zooms back out.
   useEffect(
@@ -131,10 +139,13 @@ export function Board() {
         }
         if (pinching) return cancel();
         setSmooth(false);
-        setCam((c) => fit({ ...c, x: c.x + dx, y: c.y + dy }));
+        // On the leaning board a screen drag covers a little more of the board.
+        const kx = tiltSetting ? 1 / TILT_SCALE : 1;
+        const ky = tiltSetting ? 1 / (TILT_SCALE * Math.cos((TILT_DEG * Math.PI) / 180)) : 1;
+        setCam((c) => fit({ ...c, x: c.x + dx * kx, y: c.y + dy * ky }));
       },
       onPinch: ({ origin: [ox, oy], offset: [scale] }) => {
-        const rect = viewport.current?.getBoundingClientRect();
+        const rect = stage.current?.getBoundingClientRect();
         if (!rect) return;
         const px = ox - rect.left;
         const py = oy - rect.top;
@@ -147,7 +158,7 @@ export function Board() {
       },
     },
     {
-      // The whole column takes gestures, so a zoomed board can be dragged from anywhere.
+      // The whole layer takes gestures (the rails above keep their own).
       target: box,
       eventOptions: { passive: false },
       drag: { filterTaps: true, pointer: { touch: true } },
@@ -195,25 +206,34 @@ export function Board() {
   const goAmount = view.settings.goSalary * map.m;
   const tokenSize = u * 0.55;
 
-  // 3D table view: the board leans back on the table; it lies flat while zoomed in.
+  // 3D table view: the board leans back on the table, also while zoomed in (like moving the
+  // camera closer). Zoomed in, it is not clipped to its square and continues under the rails.
   const zoomed = cam.s > 1.02;
-  const tilted = tiltSetting && !zoomed;
+  const tilted = tiltSetting;
   const edge = Math.max(3, u * 0.14);
 
   return (
     <div
       ref={box}
-      className="flex h-full w-full items-center justify-center overflow-hidden rounded-lg"
+      className="relative h-full w-full overflow-hidden"
       style={{ touchAction: 'none' }}
     >
       <div
-        className="relative"
-        style={{ width: side, height: side, perspective: tiltSetting ? side * 2.4 : undefined }}
+        ref={stage}
+        className="absolute"
+        style={{
+          left: rest.x,
+          top: rest.y,
+          width: side,
+          height: side,
+          perspective: tiltSetting ? side * 2.4 : undefined,
+        }}
       >
         <div
           ref={viewport}
           data-testid="board"
           data-tilted={tilted || undefined}
+          data-zoomed={zoomed || undefined}
           // Zoomed in, the board is not clipped to its square: it fills the whole column.
           className={`relative rounded-lg ${zoomed ? 'overflow-visible' : 'overflow-hidden'}`}
           style={{

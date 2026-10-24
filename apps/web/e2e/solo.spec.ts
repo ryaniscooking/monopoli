@@ -278,7 +278,9 @@ test('house-rule money options use the chosen map’s currency', async ({ page }
   await expect(sheet.getByRole('button', { name: 'AED 1,500' })).toBeVisible();
 });
 
-test('3D table view: the board leans back and lies flat while zoomed in', async ({ page }) => {
+test('3D table view: the board leans back and keeps the angle while zoomed in', async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     localStorage.setItem(
       'monopoli:settings',
@@ -291,7 +293,8 @@ test('3D table view: the board leans back and lies flat while zoomed in', async 
   await expect(board).toHaveAttribute('data-tilted', 'true');
   await page.locator('[data-tile="p01"]').tap();
   await expect(page.getByTestId('deed')).toContainText('Deira');
-  await expect(board).not.toHaveAttribute('data-tilted');
-  await page.getByTestId('deed').getByRole('button', { name: 'Close' }).click();
+  await expect(board).toHaveAttribute('data-zoomed', 'true');
   await expect(board).toHaveAttribute('data-tilted', 'true');
+  await page.getByTestId('deed').getByRole('button', { name: 'Close' }).click();
+  await expect(board).not.toHaveAttribute('data-zoomed');
 });

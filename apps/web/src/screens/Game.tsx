@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Board } from '../board/Board';
 import { Button } from '../components/ui';
 import { ActionRail } from '../game/ActionRail';
@@ -19,6 +19,7 @@ export function Game() {
   const hasClient = useTable((s) => s.client !== null);
   const go = useUi((s) => s.go);
   const table = useSettings((s) => s.boardTilt);
+  const boardHome = useRef<HTMLDivElement>(null);
   const selectTile = useUi((s) => s.selectTile);
 
   // A buy decision shows that tile's deed.
@@ -35,16 +36,19 @@ export function Game() {
 
   return (
     <div
-      className={`safe flex h-full gap-2 bg-primary ${table ? 'table-surface' : ''}`}
+      className={`safe relative flex h-full gap-2 bg-primary ${table ? 'table-surface' : ''}`}
       data-testid="game-screen"
     >
-      <div className="w-[22%] min-w-0">
+      {/* The board lives in a full-screen layer under the rails: it rests in the middle column
+          (boardHome) and, zoomed in, continues under the rails. */}
+      <div className="absolute inset-0 z-0">
+        <Board home={boardHome} />
+      </div>
+      <div className="relative z-10 w-[22%] min-w-0">
         <PlayerRail />
       </div>
-      <div className="min-w-0 flex-1">
-        <Board />
-      </div>
-      <div className="w-[26%] min-w-0">
+      <div ref={boardHome} className="pointer-events-none min-w-0 flex-1" />
+      <div className="relative z-10 w-[26%] min-w-0">
         <ActionRail />
       </div>
       <DebtPanel />

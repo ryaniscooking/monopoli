@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getLegalActions, rentFor } from '../src/index';
+import { getLegalActions, rentFor, sellValue } from '../src/index';
 import { act, build, own, P, setup, tryAct, type G } from './helpers';
 
 const builds = (g: G, p: 'p0' | 'p1' | 'p2') =>
@@ -79,6 +79,43 @@ describe('7.5 Buying and building', () => {
     act(g, 'p0', { type: 'sell_building', tile: 'p01' });
     expect(P(g, 'p0').cash).toBe(1525);
     expect(g.state.properties.p01?.buildings).toBe(1);
+  });
+
+  it('R-044 sellValue matches what a sale pays (hotel with and without 4 bank houses)', () => {
+    const g = setup({ players: 3 });
+    own(g, 'p0', 'p01', 'p02');
+    build(g, 'p01', 5);
+    build(g, 'p02', 4);
+    expect(sellValue(g.map, g.state, 'p01')).toBe(25); // brown house cost 50, half
+    expect(sellValue(g.map, g.state, 'p03' as never)).toBe(0);
+    own(g, 'p2', 'p09', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17');
+    for (const t of ['p09', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15'] as const) build(g, t, 4);
+    expect(g.state.bank.houses).toBe(0);
+    expect(sellValue(g.map, g.state, 'p01')).toBe(125); // whole hotel: 5 x 25
+    const before = P(g, 'p0').cash;
+    act(g, 'p0', { type: 'sell_building', tile: 'p01' });
+    expect(P(g, 'p0').cash - before).toBe(125);
+  });
+
+  it('R-080 selling buildings is allowed while raising cash for a debt', () => {
+    const g = setup();
+    own(g, 'p0', 'p01', 'p02');
+    build(g, 'p01', 1);
+    build(g, 'p02', 1);
+    P(g, 'p0').cash = 0;
+    g.state.phase = 'post_roll';
+    g.state.pending = {
+      kind: 'debt',
+      debtor: 'p0',
+      creditor: 'p1',
+      amount: 40,
+      reason: 'rent',
+      queue: [],
+      then: null,
+    };
+    const legal = getLegalActions(g.map, g.state, 'p0');
+    expect(legal).toContainEqual({ type: 'sell_building', tile: 'p01' });
+    expect(legal.some((a) => a.type === 'mortgage')).toBe(false); // set has buildings (R-060)
   });
 
   it('R-044 a hotel sells back to 4 houses, or to nothing when the bank has no 4 houses', () => {

@@ -34,7 +34,14 @@ export {
   type SeededRng,
 } from './rng';
 export { canMortgage, canUnmortgage, unmortgageCost } from './rules/mortgage';
-export { bankStock, canBuildOn, canSellOn, isShortage, nextBuilding } from './rules/build';
+export {
+  bankStock,
+  canBuildOn,
+  canSellOn,
+  isShortage,
+  nextBuilding,
+  sellValue,
+} from './rules/build';
 export { MAX_PROPOSALS_PER_TURN, TRADE_TTL_MS, tradeProblem, tradingOpen } from './rules/trade';
 export { somethingDue } from './rules/timers';
 export { hasMonopoly, rentFor } from './rules/rent';

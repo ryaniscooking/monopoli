@@ -109,6 +109,21 @@ export function placeBuilding(c: Ctx, player: PlayerId, tile: TileId, cost: numb
 }
 
 /** R-044: sell one building back for half its cost. */
+/**
+ * R-044: cash for selling the next building on `tile`: half the house cost, or half of all five
+ * building costs when a hotel cannot be broken down (the bank has fewer than 4 houses).
+ */
+export function sellValue(map: ResolvedMap, s: GameState, tile: TileId): number {
+  const t = propertyTile(map, tile);
+  const prop = s.properties[tile];
+  if (!t || !prop || prop.buildings === 0) return 0;
+  const half = Math.floor(t.houseCost / 2);
+  if (prop.buildings === HOTEL && !s.settings.unlimitedBuildings && s.bank.houses < 4) {
+    return half * 5;
+  }
+  return half;
+}
+
 export function sellBuilding(c: Ctx, player: PlayerId, tile: TileId): void {
   const t = propertyTile(c.map, tile);
   const prop = c.s.properties[tile];

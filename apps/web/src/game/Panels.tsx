@@ -1,4 +1,4 @@
-import { formatMoney, netWorth, type Action } from '@monopoli/engine';
+import { formatMoney, netWorth, sellValue, type Action } from '@monopoli/engine';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Modal, SectionLabel } from '../components/ui';
@@ -32,6 +32,19 @@ export function DebtPanel() {
     (a): a is Extract<Action, { type: 'mortgage' }> => a.type === 'mortgage',
   );
   const needed = debt && self ? Math.max(0, debt.amount - self.cash) : 0;
+  const sells = legal.filter(
+    (a): a is Extract<Action, { type: 'sell_building' }> => a.type === 'sell_building',
+  );
+  // Unmortgaged properties that cannot be mortgaged yet because their set has buildings.
+  const blockedBySet = map.buyable.some((id) => {
+    const prop = view.properties[id];
+    return (
+      prop?.owner === me &&
+      !prop.mortgaged &&
+      !mortgages.some((a) => a.tile === id) &&
+      map.byId[id]?.type === 'property'
+    );
+  });
 
   return (
     <Modal open={!!debt} testId="debt-panel">
@@ -47,26 +60,59 @@ export function DebtPanel() {
             )}
           </div>
           <div className="text-sm font-semibold">{t.debt.needed(money(needed))}</div>
+          <div className="text-[12px] opacity-75">{t.debt.hint}</div>
+          {sells.length > 0 && (
+            <div data-testid="debt-sell">
+              <SectionLabel>{t.debt.sellTitle}</SectionLabel>
+              <div className="grid grid-cols-2 gap-1.5">
+                {sells.map((a) => {
+                  const tile = map.byId[a.tile];
+                  const hotel = view.properties[a.tile]?.buildings === 5;
+                  const label = hotel ? t.debt.sellHotel : t.debt.sellHouse;
+                  return (
+                    <Button
+                      key={a.tile}
+                      data-testid={`debt-sell-${a.tile}`}
+                      variant="light"
+                      disabled={busy}
+                      className="text-left text-[12px]"
+                      onClick={() => act(a)}
+                    >
+                      {label(tile?.name ?? a.tile, money(sellValue(map, view, a.tile)))}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {mortgages.length > 0 && (
             <div>
-              <SectionLabel>{t.debt.hint}</SectionLabel>
+              <SectionLabel>{t.debt.mortgageTitle}</SectionLabel>
               <div className="grid grid-cols-2 gap-1.5">
                 {mortgages.map((a) => {
                   const tile = map.byId[a.tile];
                   return (
                     <Button
                       key={a.tile}
+                      data-testid={`debt-mortgage-${a.tile}`}
                       variant="light"
                       disabled={busy}
                       className="text-left text-[12px]"
                       onClick={() => act(a)}
                     >
-                      {tile?.name} · +{money(tile && 'mortgage' in tile ? tile.mortgage : 0)}
+                      {t.debt.mortgageOne(
+                        tile?.name ?? a.tile,
+                        money(tile && 'mortgage' in tile ? tile.mortgage : 0),
+                      )}
                     </Button>
                   );
                 })}
               </div>
             </div>
+          )}
+          {blockedBySet && <div className="text-[11px] opacity-70">{t.debt.setHasBuildings}</div>}
+          {sells.length === 0 && mortgages.length === 0 && (
+            <div className="text-[12px] font-semibold opacity-75">{t.debt.nothingLeft}</div>
           )}
           <div className="mt-1 flex gap-2">
             <Button

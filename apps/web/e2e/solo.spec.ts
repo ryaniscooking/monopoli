@@ -91,6 +91,40 @@ test('buy a property', async ({ page }) => {
   await expect(page.getByTestId('manage-sheet')).toContainText(name);
 });
 
+test('debt: sell houses to raise cash when the set has buildings', async ({ page }) => {
+  await startSolo(page, 'dubai');
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  await page.evaluate(() => {
+    type Hook = { patch: (fn: (s: GameState) => void) => void };
+    (window as unknown as { __monopoli: Hook }).__monopoli.patch((s) => {
+      s.players[0]!.cash = 0;
+      s.properties.p01 = { owner: 'p0', mortgaged: false, buildings: 1 };
+      s.properties.p02 = { owner: 'p0', mortgaged: false, buildings: 1 };
+      s.bank.houses -= 2;
+      s.phase = 'post_roll';
+      s.pending = {
+        kind: 'debt',
+        debtor: 'p0',
+        creditor: 'p1',
+        amount: 40,
+        reason: 'test',
+        queue: [],
+        then: null,
+      };
+    });
+  });
+  const panel = page.getByTestId('debt-panel');
+  await expect(panel.getByTestId('debt-sell')).toContainText('Sell a house on Deira');
+  await expect(panel).toContainText('after their buildings are sold');
+  await page.getByTestId('debt-sell-p01').click();
+  await page.getByTestId('debt-sell-p02').click();
+  // Both houses sold (2 x AED 25): the set can now be mortgaged too.
+  await expect(page.getByTestId('debt-mortgage-p01')).toBeVisible();
+  await expect(page.getByTestId('act-pay-debt')).toBeEnabled();
+  await page.getByTestId('act-pay-debt').click();
+  await expect(panel).toBeHidden();
+});
+
 test('debt: mortgage to raise cash, then pay', async ({ page }) => {
   await startSolo(page, 'dubai');
   await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });

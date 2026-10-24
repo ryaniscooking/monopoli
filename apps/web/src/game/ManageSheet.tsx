@@ -1,4 +1,4 @@
-import { formatMoney, unmortgageCost, type TileId } from '@monopoli/engine';
+import { formatMoney, sellValue, unmortgageCost, type TileId } from '@monopoli/engine';
 import { Button, Modal, SectionLabel } from '../components/ui';
 import { useUi } from '../store/ui';
 import { en } from '../strings/en';
@@ -74,7 +74,12 @@ export function ManageSheet() {
                 const tile = map.byId[id];
                 const prop = view.properties[id];
                 if (!tile || !prop || !('mortgage' in tile)) return null;
-                const half = tile.type === 'property' ? Math.floor(tile.houseCost / 2) : 0;
+                const sale =
+                  prop.buildings > 0
+                    ? sellValue(map, view, id)
+                    : tile.type === 'property'
+                      ? Math.floor(tile.houseCost / 2)
+                      : 0;
                 return (
                   <div
                     key={id}
@@ -95,7 +100,7 @@ export function ManageSheet() {
                           disabled={!has('sell_building', id)}
                           onClick={() => act({ type: 'sell_building', tile: id })}
                         >
-                          {m.sell(formatMoney(map, half, { compact: true }))}
+                          {m.sell(formatMoney(map, sale, { compact: true }))}
                         </Button>
                         <Button
                           data-testid={`build-${id}`}

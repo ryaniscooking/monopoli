@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import { Button, SectionLabel } from '../components/ui';
 import { MAPS } from '../game/maps';
-import { createOnlineRoom, joinOnlineRoom, lastRoom, useLobby } from '../online/lobby';
+import {
+  checkLastRoom,
+  createOnlineRoom,
+  joinOnlineRoom,
+  lastRoom,
+  removeLastRoom,
+  useLobby,
+  type LastRoomStatus,
+} from '../online/lobby';
 import { onlineConfigured } from '../online/supabase';
 import { useSetup, useUi } from '../store/ui';
 import { en } from '../strings/en';
@@ -33,7 +42,22 @@ export function OnlineHome() {
   const online = useOnline();
   const [code, setCode] = useState(pendingCode ?? '');
   const [mapId, setMapId] = useState(MAPS[setup.mapId] ? setup.mapId : 'myanmar');
-  const last = lastRoom();
+  const [last, setLast] = useState(() => lastRoom());
+  const [lastStatus, setLastStatus] = useState<LastRoomStatus | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  // Drop a remembered room that has finished, closed or that we are no longer in.
+  useEffect(() => {
+    if (!onlineConfigured || !lastRoom()) return;
+    let alive = true;
+    void checkLastRoom().then((status) => {
+      if (!alive) return;
+      setLastStatus(status);
+      if (status === null) setLast(null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const nickname = setup.nickname.trim() || 'Player';
   const disabled = busy || !online || !onlineConfigured;
 
@@ -67,10 +91,57 @@ export function OnlineHome() {
         )}
         {!online && <div className="rounded-lg bg-white/15 p-2 text-sm">{o.offline}</div>}
         {error && <div className="rounded-lg bg-red-700 p-2 text-sm">{error}</div>}
-        {last && (
-          <Button variant="secondary" disabled={disabled} onClick={() => join(last.code)}>
-            {o.rejoin(last.code)}
-          </Button>
+        {last && !confirmRemove && (
+          <div className="flex gap-1.5">
+            <Button
+              data-testid="rejoin"
+              variant="secondary"
+              className="flex-1"
+              disabled={disabled}
+              onClick={() => join(last.code)}
+            >
+              {o.rejoin(last.code)}
+              {lastStatus && (
+                <span className="ml-1 text-xs opacity-75">
+                  · {lastStatus === 'lobby' ? o.inLobby : o.inGame}
+                </span>
+              )}
+            </Button>
+            <Button
+              data-testid="remove-room"
+              variant="secondary"
+              aria-label={o.removeRoom}
+              disabled={busy}
+              onClick={() => setConfirmRemove(true)}
+            >
+              <X size={16} />
+            </Button>
+          </div>
+        )}
+        {last && confirmRemove && (
+          <div className="rounded-lg bg-white/15 p-2 text-sm">
+            <div className="mb-2">
+              {lastStatus === 'lobby'
+                ? o.confirmRemoveLobby(last.code)
+                : o.confirmRemoveGame(last.code)}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                data-testid="confirm-remove-room"
+                variant="danger"
+                onClick={() => {
+                  setConfirmRemove(false);
+                  setLast(null);
+                  void removeLastRoom();
+                }}
+              >
+                {o.remove}
+              </Button>
+              <Button variant="light" onClick={() => setConfirmRemove(false)}>
+                {o.keep}
+              </Button>
+            </div>
+          </div>
         )}
       </div>
       <div className="scroll-y flex min-w-0 flex-1 flex-col gap-3 rounded-xl bg-tile p-3 text-ink">

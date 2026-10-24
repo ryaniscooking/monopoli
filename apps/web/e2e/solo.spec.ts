@@ -31,9 +31,13 @@ async function startSolo(page: Page, map = 'myanmar', seed = 7) {
   await expect(page.getByTestId('game-screen')).toBeVisible();
 }
 
-/** Press whatever primary button is offered until `until` is visible. */
-async function playUntil(page: Page, until: string, maxSteps = 120) {
-  for (let i = 0; i < maxSteps; i++) {
+/**
+ * Press whatever primary button is offered until `until` is visible. Bounded by time, not by a
+ * number of presses: on a slow CI machine the bots' turns take longer between presses.
+ */
+async function playUntil(page: Page, until: string, timeoutMs = 60_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
     if (await page.getByTestId(until).isVisible()) return;
     // Stay out of auctions so the bots settle them quickly.
     const withdraw = page.getByTestId('auction-withdraw');

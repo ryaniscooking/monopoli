@@ -209,6 +209,45 @@ export function forgetRoom(): void {
   rememberRoom(null);
 }
 
+export type LastRoomStatus = 'lobby' | 'playing';
+
+/**
+ * Is the remembered room still worth offering? RLS only returns rooms this user is a member of,
+ * so a missing row means the room was deleted or we are no longer in it. Finished, closed and
+ * missing rooms are forgotten. Network problems keep the button (we cannot tell).
+ */
+export async function checkLastRoom(): Promise<LastRoomStatus | null> {
+  const last = lastRoom();
+  if (!last) return null;
+  try {
+    await ensureSession();
+    const { data, error } = await supabase()
+      .from('rooms')
+      .select('status')
+      .eq('id', last.roomId)
+      .maybeSingle();
+    if (error) return 'playing';
+    const status = (data as { status?: string } | null)?.status;
+    if (status === 'lobby' || status === 'playing') return status;
+    forgetRoom();
+    return null;
+  } catch {
+    return 'playing';
+  }
+}
+
+/** Leave the remembered room for good (lobby: free the seat; game: a bot plays the seat). */
+export async function removeLastRoom(): Promise<void> {
+  const last = lastRoom();
+  if (!last) return;
+  try {
+    await callFunction('leave-room', { roomId: last.roomId });
+  } catch {
+    /* already gone or not a member any more: forgetting it is all that is left */
+  }
+  forgetRoom();
+}
+
 const roomId = () => useLobby.getState().room?.id ?? '';
 
 /** Run a lobby action, then show its result at once (don't wait for Realtime). */

@@ -100,6 +100,8 @@ export function resumeGame(save: LocalSave): void {
 
 /** Leave the table; the save stays for Resume (online: the seat can be rejoined). */
 export function exitGame(): void {
+  // A finished online game has nothing to rejoin.
+  if (useTable.getState().online && useTable.getState().view?.phase === 'game_over') forgetRoom();
   stopTable();
   leaveReactions();
   useUi.getState().go('home');

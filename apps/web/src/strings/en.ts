@@ -209,6 +209,15 @@ export const en = {
     codePlaceholder: 'ABC234',
     or: 'or join a friend’s room',
     rejoin: (code: string) => `Rejoin room ${code}`,
+    inLobby: 'lobby',
+    inGame: 'game in progress',
+    removeRoom: 'Remove this room',
+    confirmRemoveLobby: (code: string) =>
+      `Leave room ${code}? If you are the host and nobody else is in it, the room closes.`,
+    confirmRemoveGame: (code: string) =>
+      `Leave the game in room ${code}? A bot will play your seat from now on.`,
+    remove: 'Leave room',
+    keep: 'Keep',
     notConfigured: 'Online play is not set up yet.',
     offline: 'You are offline. Online play needs an internet connection.',
     back: 'Back',

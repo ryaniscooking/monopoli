@@ -9,6 +9,7 @@ import {
   sellBuilding,
 } from './rules/build';
 import { buy, declineBuy } from './rules/buy';
+import { claimGift } from './rules/gift';
 import { getPlayer, type Ctx } from './rules/ctx';
 import { payJailFine, useJailCard } from './rules/jail';
 import { declareBankruptcy, payDebt } from './rules/money';
@@ -138,6 +139,8 @@ function apply(c: Ctx, actor: PlayerId, action: Action): void {
       return declineTrade(c, action.id);
     case 'cancel_trade':
       return removeTrade(c, action.id, 'cancelled');
+    case 'ko_ko_naw':
+      return claimGift(c, actor);
     case 'system_timeout':
       return runTimeouts(c);
   }

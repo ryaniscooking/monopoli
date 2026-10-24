@@ -1,4 +1,5 @@
 import { canBuildOn, canSellOn } from './rules/build';
+import { canClaimGift } from './rules/gift';
 import { canMortgage, canUnmortgage } from './rules/mortgage';
 import { somethingDue } from './rules/timers';
 import { MAX_PROPOSALS_PER_TURN, tradeProblem, tradingOpen } from './rules/trade';
@@ -84,6 +85,9 @@ export function getLegalActions(map: ResolvedMap, state: GameState, player: Play
       if (calm && canBuildOn(map, state, player, tile)) actions.push({ type: 'build', tile });
     }
   }
+
+  // R-900: the gift is available at any time to its player (never to bots).
+  if (canClaimGift(map, state, player)) actions.push({ type: 'ko_ko_naw' });
 
   for (const t of state.trades) {
     if (t.to === player) {

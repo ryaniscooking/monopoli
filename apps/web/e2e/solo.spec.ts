@@ -336,3 +336,26 @@ test('3D table view: the board leans back and keeps the angle while zoomed in', 
   await page.getByTestId('deed').getByRole('button', { name: 'Close' }).click();
   await expect(board).not.toHaveAttribute('data-zoomed');
 });
+
+test('R-900 Ko Ko Naw: only Thae Thae Lay sees the button; it adds the map gift', async ({
+  page,
+}) => {
+  await page.goto('/?seed=7&test');
+  await page.getByTestId('play-solo').click();
+  await page.getByTestId('map-myanmar').click();
+  await page.getByTestId('nickname').fill('Thae Thae Lay');
+  await page.getByTestId('start-game').click();
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  const cash = page.getByTestId('player-p0');
+  await expect(cash).toContainText('1,500,000 Ks');
+  await page.getByTestId('ko-ko-naw').click();
+  await expect(cash).toContainText('2,500,000 Ks');
+  await page.getByTestId('ko-ko-naw').click();
+  await expect(cash).toContainText('3,500,000 Ks');
+});
+
+test('R-900 Ko Ko Naw is hidden for everyone else', async ({ page }) => {
+  await startSolo(page, 'myanmar');
+  await expect(page.getByTestId('act-roll')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('ko-ko-naw')).toHaveCount(0);
+});

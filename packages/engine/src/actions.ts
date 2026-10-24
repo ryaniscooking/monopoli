@@ -32,5 +32,6 @@ export const ActionSchema: z.ZodType<Action> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('accept_trade'), id: z.string().max(16) }).strict(),
   z.object({ type: z.literal('decline_trade'), id: z.string().max(16) }).strict(),
   z.object({ type: z.literal('cancel_trade'), id: z.string().max(16) }).strict(),
+  z.object({ type: z.literal('ko_ko_naw') }).strict(),
   // system_timeout is server-only and deliberately not accepted from clients.
 ]);

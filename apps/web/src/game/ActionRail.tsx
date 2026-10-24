@@ -21,6 +21,9 @@ export function ActionRail() {
   const selectTile = useUi((s) => s.selectTile);
   const openSheet = useUi((s) => s.openSheet);
   const legal = useMyActions();
+  // R-900: shown only on the gift player's own screen (the engine decides who that is).
+  const gift = useMyActions(true).some((a) => a.type === 'ko_ko_naw');
+  const busy = useTable((s) => s.busy);
   if (!map || !view || !me) return null;
 
   const has = (type: Action['type']) => legal.some((a) => a.type === type);
@@ -89,6 +92,16 @@ export function ActionRail() {
   return (
     <div className="flex h-full flex-col gap-2 py-1 text-white">
       <div className="flex flex-col gap-1.5">{primary}</div>
+      {gift && (
+        <Button
+          data-testid="ko-ko-naw"
+          className="bg-pink-500 font-bold text-white"
+          disabled={busy}
+          onClick={() => act({ type: 'ko_ko_naw' })}
+        >
+          {t.koKoNaw}
+        </Button>
+      )}
       <TurnTimer deadline={view.turnDeadline} />
       <div className="scroll-y flex min-h-0 flex-1 flex-col gap-1.5">
         <TradeBanner />

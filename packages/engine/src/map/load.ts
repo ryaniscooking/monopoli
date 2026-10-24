@@ -139,5 +139,6 @@ export function resolveMap(raw: unknown): ResolvedMap {
     decks,
     tokens: config.tokens,
     botNames: config.botNames,
+    gift: (config.gift ?? 0) * m,
   };
 }

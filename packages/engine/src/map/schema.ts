@@ -120,6 +120,8 @@ export const MapConfigSchema = z.object({
     )
     .min(8),
   botNames: z.array(name).min(12),
+  /** R-900 house fun: gift for the player named Thae Thae Lay, in classic units (optional). */
+  gift: z.number().int().positive().max(1_000_000).optional(),
 });
 
 export type ColorGroup = z.infer<typeof ColorGroupSchema>;

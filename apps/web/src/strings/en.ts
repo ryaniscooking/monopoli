@@ -32,6 +32,7 @@ export const en = {
     buy: (price: string) => `Buy ${price}`,
     decline: 'Don’t buy',
     endTurn: 'End turn',
+    koKoNaw: 'Ko Ko Naw',
     payFine: (fine: string) => `Pay ${fine}`,
     useCard: 'Use Jail card',
     payDebt: 'Pay',

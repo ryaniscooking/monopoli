@@ -218,6 +218,7 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
       return;
     }
     case 'money_transfer':
+      if (e.reason === 'gift') return; // R-900 is a secret: no pop-up, no pause
       if (e.from !== 'bank' && e.from !== 'pot') float(e.from, -e.amount);
       if (e.to !== 'bank' && e.to !== 'pot') float(e.to, e.amount);
       await wait(120);

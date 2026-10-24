@@ -79,6 +79,8 @@ export interface ResolvedMap {
   decks: Readonly<Record<DeckId, { name: string; cardIds: readonly string[] }>>;
   tokens: MapConfig['tokens'];
   botNames: readonly string[];
+  /** R-900 gift in map currency (0 = no gift on this map). */
+  gift: number;
 }
 
 // ---------- Settings ----------
@@ -272,6 +274,8 @@ export type Action =
   | { type: 'accept_trade'; id: string }
   | { type: 'decline_trade'; id: string }
   | { type: 'cancel_trade'; id: string }
+  /** R-900 house fun: a gift from the bank (see rules/gift.ts). */
+  | { type: 'ko_ko_naw' }
   /** Server/local clock tick: ends expired auctions, trades, turn timers, the time limit. */
   | { type: 'system_timeout' };
 

@@ -44,6 +44,7 @@ export {
 } from './rules/build';
 export { MAX_PROPOSALS_PER_TURN, TRADE_TTL_MS, tradeProblem, tradingOpen } from './rules/trade';
 export { somethingDue } from './rules/timers';
+export { canClaimGift, GIFT_PLAYER_NAME } from './rules/gift';
 export { hasMonopoly, rentFor } from './rules/rent';
 export { makeSettings, OFFICIAL_SETTINGS } from './settings';
 export { emptyStats, tallyStats, type PlayerStats } from './stats';

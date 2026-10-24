@@ -112,13 +112,6 @@ export async function commit(
   return res.data as number;
 }
 
-async function memberSeat(db: Admin, roomId: string, userId: string) {
-  const seats = await getSeats(db, roomId);
-  const seat = seats.find((s) => s.user_id === userId);
-  if (!seat) throw new ApiError('NOT_MEMBER', 'You are not in this room');
-  return { seats, seat };
-}
-
 async function touch(db: Admin, seat: SeatRow): Promise<void> {
   await db
     .from('room_players')
@@ -133,19 +126,26 @@ export async function gameAction(
   userId: string,
   body: { roomId: string; clientActionId: string; expectedVersion: number; action: Action },
 ) {
-  await rateLimit(db, userId, 'action:s', 10, 1);
-  await rateLimit(db, userId, 'action:m', 180, 60);
-  const { seats, seat } = await memberSeat(db, body.roomId, userId);
-  const room = await getRoom(db, body.roomId);
+  // Every read is independent, so they run together (one round trip instead of seven). Nothing
+  // read here leaves the server unless the membership check below passes.
+  const [, , seats, room, seen, game, secrets] = await Promise.all([
+    rateLimit(db, userId, 'action:s', 10, 1),
+    rateLimit(db, userId, 'action:m', 180, 60),
+    getSeats(db, body.roomId),
+    getRoom(db, body.roomId),
+    db
+      .from('action_log')
+      .select('client_action_id')
+      .eq('room_id', body.roomId)
+      .eq('client_action_id', body.clientActionId)
+      .maybeSingle(),
+    getGame(db, body.roomId),
+    getSecrets(db, body.roomId),
+  ]);
+  const seat = seats.find((s) => s.user_id === userId);
+  if (!seat) throw new ApiError('NOT_MEMBER', 'You are not in this room');
   if (room.status !== 'playing') throw new ApiError('NOT_STARTED', 'The game is not running');
   // Idempotency first (spec 11.5): a replayed or double-submitted action id never runs twice.
-  const seen = await db
-    .from('action_log')
-    .select('client_action_id')
-    .eq('room_id', body.roomId)
-    .eq('client_action_id', body.clientActionId)
-    .maybeSingle();
-  const game = await getGame(db, body.roomId);
   if (seen.data) {
     // A client retrying after a lost response treats this as success and resyncs.
     throw new ApiError('DUPLICATE', 'This action was already applied', {
@@ -160,7 +160,7 @@ export async function gameAction(
   const w: Working = {
     map: loadMap(room.map_id),
     state: game.state,
-    secrets: await getSecrets(db, body.roomId),
+    secrets,
     events: [],
   };
   const now = Date.now(); // server time only (spec 11.6)
@@ -170,8 +170,10 @@ export async function gameAction(
   w.secrets = res.secrets;
   w.events.push(...res.events);
   runBots(w, now);
-  const version = await commit(db, body.roomId, game.version, w, body.clientActionId, userId);
-  await touch(db, seat);
+  const [version] = await Promise.all([
+    commit(db, body.roomId, game.version, w, body.clientActionId, userId),
+    touch(db, seat),
+  ]);
   return { version, state: w.state, events: w.events };
 }
 
@@ -180,19 +182,23 @@ export async function gameAction(
  * Any member may call it; the server re-checks everything.
  */
 export async function gameTick(db: Admin, userId: string, roomId: string) {
-  await rateLimit(db, userId, 'tick', 40, 60);
-  const { seats, seat } = await memberSeat(db, roomId, userId);
+  const [, seats, room] = await Promise.all([
+    rateLimit(db, userId, 'tick', 40, 60),
+    getSeats(db, roomId),
+    getRoom(db, roomId),
+  ]);
+  const seat = seats.find((s) => s.user_id === userId);
+  if (!seat) throw new ApiError('NOT_MEMBER', 'You are not in this room');
   await touch(db, seat);
-  const room = await getRoom(db, roomId);
   if (room.status !== 'playing') return { version: null, changed: false };
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    const game = await getGame(db, roomId);
+    const [game, secrets] = await Promise.all([getGame(db, roomId), getSecrets(db, roomId)]);
     const now = Date.now();
     const w: Working = {
       map: loadMap(room.map_id),
       state: game.state,
-      secrets: await getSecrets(db, roomId),
+      secrets,
       events: [],
     };
     const seatUpdates: { seat: number; controlled_by: 'human' | 'bot'; connected: boolean }[] = [];

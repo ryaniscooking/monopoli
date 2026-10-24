@@ -108,14 +108,33 @@ export function stopTable(): void {
   set(empty());
 }
 
+/** When this device started the dice tumbling before the server answered (online). */
+let rollStartedAt: number | null = null;
+/** A move from this device is on its way to the server. */
+let inFlight = false;
+
 /** A human intent from this device. Ignored while animations play. */
 export async function act(action: Action): Promise<void> {
   const { client, busy } = get();
-  if (!client || busy) return;
+  // One intent at a time: a quick double tap must not send the move twice.
+  if (!client || busy || inFlight) return;
+  inFlight = true;
+  // Online, the server decides the roll; start the tumble now so the tap feels instant.
+  if (action.type === 'roll' && get().online) {
+    rollStartedAt = performance.now();
+    set({ rolling: true });
+  }
   try {
     await client.dispatch(action);
   } catch (e) {
     set({ error: e instanceof Error ? e.message : String(e) });
+  } finally {
+    inFlight = false;
+    // No dice event arrived (an error, or the move was already applied): stop tumbling.
+    if (rollStartedAt !== null && !draining) {
+      rollStartedAt = null;
+      set({ rolling: false });
+    }
   }
 }
 
@@ -155,13 +174,17 @@ async function play(e: GameEvent, state: GameState): Promise<void> {
   log(describeEvent(map, state, e));
   const me = get().client?.me;
   switch (e.type) {
-    case 'dice_rolled':
+    case 'dice_rolled': {
       playSfx('dice');
       set({ rolling: true });
-      await wait(650);
+      // If the tumble already started on tap, only finish the rest of it.
+      const spent = rollStartedAt === null ? 0 : performance.now() - rollStartedAt;
+      rollStartedAt = null;
+      await wait(Math.max(150, 650 - spent));
       set({ rolling: false, dice: e.dice });
       await wait(300);
       return;
+    }
     case 'moved':
       if (e.mode === 'jump') {
         playSfx('step');

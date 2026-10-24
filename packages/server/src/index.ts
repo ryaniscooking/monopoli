@@ -38,13 +38,20 @@ export const FUNCTIONS: Record<string, Handler> = {
   'game-tick': route(RoomOnly, (db, u, b) => gameTick(db, u, b.roomId)),
 };
 
-/** The caller's user id from their JWT (spec 11.2). */
+/**
+ * The caller's user id from their JWT (spec 11.2). getClaims verifies the signature against the
+ * project's cached JSON Web Key Set (asymmetric signing keys), so a move no longer waits for a
+ * round trip to the Auth server; it falls back to the Auth server for symmetric keys (local CLI).
+ */
 async function callerId(db: Admin, req: Request): Promise<string> {
   const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
   if (!token) throw new ApiError('UNAUTHORIZED', 'Sign in first');
-  const { data, error } = await db.auth.getUser(token);
-  if (error || !data.user) throw new ApiError('UNAUTHORIZED', 'Your session is not valid');
-  return data.user.id;
+  const { data, error } = await db.auth.getClaims(token);
+  const sub = data?.claims.sub;
+  if (error || !sub || data.claims.role !== 'authenticated') {
+    throw new ApiError('UNAUTHORIZED', 'Your session is not valid');
+  }
+  return sub;
 }
 
 export async function handle(name: string, req: Request, env: ServerEnv): Promise<Response> {

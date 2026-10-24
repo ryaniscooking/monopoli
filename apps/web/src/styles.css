@@ -64,10 +64,12 @@ input {
   font-variant-numeric: tabular-nums;
 }
 
-/* Notch / home indicator (spec 12.2). */
+/* Notch / home indicator (spec 12.2). In landscape the home-indicator inset (~21 px) left a
+   visible empty strip at the bottom; 40% of it (min 6 px) keeps buttons clear of the swipe-up
+   gesture without wasting space. */
 .safe {
   padding: max(env(safe-area-inset-top), 6px) max(env(safe-area-inset-right), 8px)
-    max(env(safe-area-inset-bottom), 6px) max(env(safe-area-inset-left), 8px);
+    max(calc(env(safe-area-inset-bottom) * 0.4), 6px) max(env(safe-area-inset-left), 8px);
 }
 
 .rotate-overlay {

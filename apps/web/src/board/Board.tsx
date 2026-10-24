@@ -234,8 +234,8 @@ export function Board({ home }: { home?: RefObject<HTMLDivElement | null> }) {
           data-testid="board"
           data-tilted={tilted || undefined}
           data-zoomed={zoomed || undefined}
-          // Zoomed in, the board is not clipped to its square: it fills the whole column.
-          className={`relative rounded-lg ${zoomed ? 'overflow-visible' : 'overflow-hidden'}`}
+          // Never clipped: zoomed in, the board continues under the rails.
+          className="relative"
           style={{
             width: side,
             height: side,
@@ -245,18 +245,16 @@ export function Board({ home }: { home?: RefObject<HTMLDivElement | null> }) {
             transform: tilted
               ? `translateY(-2%) scale(${TILT_SCALE}) rotateX(${TILT_DEG}deg)`
               : 'none',
-            transition: reduced ? undefined : 'transform 450ms ease, box-shadow 450ms ease',
-            // Board thickness and its shadow on the table.
-            boxShadow: zoomed
-              ? 'none'
-              : tiltSetting
-                ? `0 ${edge}px 0 color-mix(in srgb, var(--m-board) 55%, #000), 0 ${edge * 3}px ${edge * 4}px rgba(0,0,0,.5)`
-                : '0 4px 6px rgba(0,0,0,.15)',
+            transition: reduced ? undefined : 'transform 450ms ease',
           }}
         >
           <div
-            className="absolute top-0 left-0 bg-board"
+            // The board itself carries its thickness and shadow, so they zoom with it.
+            className="absolute top-0 left-0 overflow-hidden rounded-lg bg-board"
             style={{
+              boxShadow: tiltSetting
+                ? `0 ${edge}px 0 color-mix(in srgb, var(--m-board) 55%, #000), 0 ${edge * 3}px ${edge * 4}px rgba(0,0,0,.5)`
+                : '0 4px 6px rgba(0,0,0,.15)',
               width: side,
               height: side,
               transformOrigin: '0 0',

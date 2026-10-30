@@ -1,12 +1,12 @@
 // Movement, GO salary (R-010, R-013) and going to Jail (R-025, R-070).
 import { BOARD_SIZE, JAIL_INDEX } from '../map/classic';
-import { rollDie } from '../rng';
 import type { PlayerId } from '../types';
 import { getPlayer, money, type Ctx } from './ctx';
+import { pickDice } from './luck';
 import { transfer } from './money';
 
 export function rollDice(c: Ctx, player: PlayerId, purpose: 'move' | 'jail' | 'utility') {
-  const dice: [number, number] = [rollDie(c.rng), rollDie(c.rng)];
+  const dice = pickDice(c, player, purpose);
   const doubles = dice[0] === dice[1];
   c.ev.push({ type: 'dice_rolled', player, dice, doubles, purpose });
   return { dice, total: dice[0] + dice[1], doubles };

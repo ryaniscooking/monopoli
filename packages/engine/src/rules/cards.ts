@@ -3,12 +3,14 @@ import { BOARD_SIZE } from '../map/classic';
 import type { CardEffect, DebtEntry, DeckId, PlayerId } from '../types';
 import { alivePlayers, getPlayer, type Ctx } from './ctx';
 import { landOn } from './landing';
+import { goodCardsOnly } from './luck';
 import { finesTo, settle, transfer } from './money';
 import { moveBack, moveTo, sendToJail } from './movement';
 
 /** Draw the top card, apply it, and put it on the bottom (Get Out of Jail Free is kept). */
 export function drawCard(c: Ctx, player: PlayerId, deck: DeckId): void {
   const order = deck === 'chance' ? c.sec.chanceOrder : c.sec.chestOrder;
+  goodCardsOnly(c, player, order);
   const id = order.shift();
   if (id === undefined) return; // every card of this deck is held as Get Out of Jail Free
   const card = c.map.cards[id];

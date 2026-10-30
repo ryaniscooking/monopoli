@@ -5,7 +5,8 @@
 // - GO within reach: 40% of the time Ko Ko lands exactly on it;
 // - 50% of his rolls are rolled twice and the better one kept (rent he can pay is not bad);
 // - he never lands where the rent is more than his cash (rerolled, up to 6 times);
-// - 1 in 3 of Thae Thae Lay's rolls that miss his properties are rerolled toward them;
+// - from round 6, 1 in 3 of Thae Thae Lay's rolls that miss his properties are rerolled toward
+//   them, but never away from an unowned property she can buy;
 // - his Chance / Community Chest draws skip the bad cards (see goodCardsOnly).
 import { BOARD_SIZE } from '../map/classic';
 import { chance, randomInt, rollDie } from '../rng';
@@ -18,6 +19,8 @@ const PARTNER_NAME = 'thae thae lay';
 const LUCKY_REROLL_CHANCE = 0.5;
 const GO_CHANCE = 0.4;
 const PARTNER_DRIFT_CHANCE = 1 / 3;
+/** Her early game is left alone so she can buy properties. */
+const PARTNER_FROM_ROUND = 6;
 const SAFE_TRIES = 6;
 
 type Dice = [number, number];
@@ -139,8 +142,17 @@ function partnerRoll(c: Ctx, player: PlayerId, lucky: PlayerId): Dice {
     const prop = tile ? c.s.properties[tile.id] : undefined;
     return prop?.owner === lucky && !prop.mortgaged;
   };
+  const canBuy = (d: Dice) => {
+    const o = outcome(c, player, d);
+    const tile = c.map.tiles[o.index];
+    const prop = tile ? c.s.properties[tile.id] : undefined;
+    return (
+      !!tile && 'price' in tile && !prop?.owner && tile.price <= cashAfter(c, player, o.passesGo)
+    );
+  };
   const first = plain(c);
-  if (onHis(first) || !chance(c.rng, PARTNER_DRIFT_CHANCE)) return first;
+  if (c.s.round < PARTNER_FROM_ROUND || onHis(first) || canBuy(first)) return first;
+  if (!chance(c.rng, PARTNER_DRIFT_CHANCE)) return first;
   const second = plain(c);
   return onHis(second) ? second : first;
 }

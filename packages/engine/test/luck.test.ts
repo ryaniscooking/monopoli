@@ -81,15 +81,29 @@ describe('R-901 house luck (secret)', () => {
     expect(landings(base, 'p0', 1, 'p04')).toBeGreaterThan(75);
   });
 
-  it('R-901 Thae Thae Lay drifts onto Ko Ko properties; other names roll plain dice', () => {
+  it('R-901 Thae Thae Lay drifts onto Ko Ko properties from round 6; other names roll plain dice', () => {
     const base = koKoGame();
+    base.state.round = 6;
+    // Everything she could reach is owned, so no roll is a property she can buy.
     own(base, 'p0', 'p04');
+    own(base, 'p1', 'p02', 'p03', 'p05', 'p06', 't1', 'u1', 'p07', 'p08');
     const drift = landings(base, 'p1', 1, 'p04', 3000);
     P(base, 'p1').name = 'Someone';
     const plain = landings(base, 'p1', 1, 'p04', 3000);
     expect(plain).toBeGreaterThan(420); // ~500 = 1 in 6
     expect(plain).toBeLessThan(580);
     expect(drift).toBeGreaterThan(plain + 70); // ~640: +1/3 of 5/6 of 1/6
+  });
+
+  it('R-901 no drift in her early game (rounds 1-5) or away from a property she can buy', () => {
+    const base = koKoGame();
+    own(base, 'p0', 'p04');
+    const early = landings(base, 'p1', 1, 'p04', 3000);
+    expect(early).toBeGreaterThan(420); // plain ~500
+    expect(early).toBeLessThan(580);
+    base.state.round = 6; // the other tiles in reach are unowned and affordable
+    const later = landings(base, 'p1', 1, 'p04', 3000);
+    expect(later).toBeLessThan(600);
   });
 
   it('R-901 nobody else gets luck: another player in Jail can fail', () => {

@@ -2,8 +2,8 @@
 // human-controlled players named "Ko Ko" (the lucky one) and "Thae Thae Lay". The dice stay
 // two plain dice; the engine just picks among real rolls, so nothing looks different:
 // - in Jail, Ko Ko always rolls doubles;
-// - GO within reach: Ko Ko lands exactly on it;
-// - 50% of his rolls are rolled twice and the better one kept;
+// - GO within reach: 40% of the time Ko Ko lands exactly on it;
+// - 50% of his rolls are rolled twice and the better one kept (rent he can pay is not bad);
 // - he never lands where the rent is more than his cash (rerolled, up to 6 times);
 // - 1 in 3 of Thae Thae Lay's rolls that miss his properties are rerolled toward them;
 // - his Chance / Community Chest draws skip the bad cards (see goodCardsOnly).
@@ -16,6 +16,7 @@ import { rentFor } from './rent';
 export const LUCKY_PLAYER_NAME = 'ko ko';
 const PARTNER_NAME = 'thae thae lay';
 const LUCKY_REROLL_CHANCE = 0.5;
+const GO_CHANCE = 0.4;
 const PARTNER_DRIFT_CHANCE = 1 / 3;
 const SAFE_TRIES = 6;
 
@@ -93,7 +94,9 @@ function score(c: Ctx, player: PlayerId, d: Dice): number {
       const prop = c.s.properties[tile.id];
       if (!prop?.owner) return tile.price <= cashAfter(c, player, o.passesGo) ? 100 * unit : 0;
       if (prop.owner === player) return 20 * unit;
-      return -rentAt(c, player, o.index, o.total);
+      // Rent he can pay is fine (user's choice); only rent above his cash counts as bad.
+      const rent = rentAt(c, player, o.index, o.total);
+      return rent > cashAfter(c, player, o.passesGo) ? -rent : 0;
     }
   }
 }
@@ -117,7 +120,7 @@ function luckyRoll(c: Ctx, player: PlayerId, purpose: 'move' | 'jail'): Dice {
   }
   const p = c.s.players.find((x) => x.id === player);
   const toGo = (BOARD_SIZE - (p?.position ?? 0)) % BOARD_SIZE;
-  if (toGo >= 2 && toGo <= 12) {
+  if (toGo >= 2 && toGo <= 12 && chance(c.rng, GO_CHANCE)) {
     const pair = pairFor(c, toGo);
     if (pair) return pair;
   }

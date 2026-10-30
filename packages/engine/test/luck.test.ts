@@ -46,12 +46,12 @@ describe('R-901 house luck (secret)', () => {
     }
   });
 
-  it('R-901 Ko Ko lands exactly on GO when it is within reach', () => {
+  it('R-901 Ko Ko lands exactly on GO about 40% of the time when it is within reach', () => {
     const base = koKoGame();
-    for (let seed = 1; seed <= 100; seed++) {
-      const g = rollSeeded(base, 'p0', 31, seed);
-      expect(P(g, 'p0').position).toBe(0);
-    }
+    // 40% forced + 60% of the plain 4-in-36 chance of a 9 = ~47%.
+    const hits = landings(base, 'p0', 31, 'go', 1000);
+    expect(hits).toBeGreaterThan(400);
+    expect(hits).toBeLessThan(540);
   });
 
   it('R-901 Ko Ko never lands on rent he cannot pay, but may when he can', () => {
@@ -66,11 +66,19 @@ describe('R-901 house luck (secret)', () => {
 
   it('R-901 Ko Ko keeps the better of two rolls about half the time', () => {
     const base = koKoGame();
+    // Go To Jail is 7 steps away: plain dice ~100 of 600, with the luck ~58.
+    const hits = landings(base, 'p0', 23, 'gotojail');
+    expect(hits).toBeGreaterThan(30);
+    expect(hits).toBeLessThan(80);
+  });
+
+  it('R-901 rent Ko Ko can pay is not avoided: he lands on her hotel at the plain rate', () => {
+    const base = koKoGame();
     own(base, 'p1', 'p03', 'p04', 'p05');
     build(base, 'p04', 5);
     P(base, 'p0').cash = 100_000_000;
-    // Plain dice hit a 7 one roll in six (~100 of 600); the luck cuts that clearly.
-    expect(landings(base, 'p0', 1, 'p04')).toBeLessThan(80);
+    // Plain dice: a 7 is one roll in six (~100 of 600).
+    expect(landings(base, 'p0', 1, 'p04')).toBeGreaterThan(75);
   });
 
   it('R-901 Thae Thae Lay drifts onto Ko Ko properties; other names roll plain dice', () => {

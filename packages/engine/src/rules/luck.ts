@@ -1,10 +1,11 @@
 // R-901 house luck (house fun, outside the official rules; secret by request). Only for the
 // human-controlled players named "Ko Ko" (the lucky one) and "Thae Thae Lay". The dice stay
 // two plain dice; the engine just picks among real rolls, so nothing looks different:
+// - a roll onto rent Ko Ko can pay is always kept, so he lands there as often as plain dice;
 // - in Jail, Ko Ko always rolls doubles;
 // - GO within reach: 40% of the time Ko Ko lands exactly on it;
 // - 50% of his rolls are rolled twice and the better one kept (rent he can pay is not bad);
-// - he never lands where the rent is more than his cash (rerolled, up to 6 times);
+// - he never lands where the rent is more than his cash (rerolled, up to 6 times, in Jail too);
 // - from round 6, 1 in 3 of Thae Thae Lay's rolls that miss his properties are rerolled toward
 //   them, but never away from an unowned property she can buy;
 // - his Chance / Community Chest draws skip the bad cards (see goodCardsOnly).
@@ -117,22 +118,32 @@ function pairFor(c: Ctx, total: number): Dice | null {
 }
 
 function luckyRoll(c: Ctx, player: PlayerId, purpose: 'move' | 'jail'): Dice {
-  if (purpose === 'jail') {
+  const roll = (): Dice => {
+    if (purpose === 'move') return plain(c);
     const face = rollDie(c.rng);
     return [face, face];
+  };
+  const first = roll();
+  // Rent he can pay is landed on exactly as often as with plain dice (user's choice): no other
+  // luck may replace that roll.
+  const o = outcome(c, player, first);
+  const rent = o.thirdDouble ? 0 : rentAt(c, player, o.index, o.total);
+  if (rent > 0 && rent <= cashAfter(c, player, o.passesGo)) return first;
+
+  let d = first;
+  if (purpose === 'move') {
+    const p = c.s.players.find((x) => x.id === player);
+    const toGo = (BOARD_SIZE - (p?.position ?? 0)) % BOARD_SIZE;
+    if (toGo >= 2 && toGo <= 12 && chance(c.rng, GO_CHANCE)) {
+      const pair = pairFor(c, toGo);
+      if (pair) return pair;
+    }
+    if (chance(c.rng, LUCKY_REROLL_CHANCE)) {
+      const other = plain(c);
+      if (score(c, player, other) > score(c, player, d)) d = other;
+    }
   }
-  const p = c.s.players.find((x) => x.id === player);
-  const toGo = (BOARD_SIZE - (p?.position ?? 0)) % BOARD_SIZE;
-  if (toGo >= 2 && toGo <= 12 && chance(c.rng, GO_CHANCE)) {
-    const pair = pairFor(c, toGo);
-    if (pair) return pair;
-  }
-  let d = plain(c);
-  if (chance(c.rng, LUCKY_REROLL_CHANCE)) {
-    const other = plain(c);
-    if (score(c, player, other) > score(c, player, d)) d = other;
-  }
-  for (let i = 0; i < SAFE_TRIES && unaffordable(c, player, d); i++) d = plain(c);
+  for (let i = 0; i < SAFE_TRIES && unaffordable(c, player, d); i++) d = roll();
   return d;
 }
 

@@ -78,7 +78,25 @@ describe('R-901 house luck (secret)', () => {
     build(base, 'p04', 5);
     P(base, 'p0').cash = 100_000_000;
     // Plain dice: a 7 is one roll in six (~100 of 600).
-    expect(landings(base, 'p0', 1, 'p04')).toBeGreaterThan(75);
+    expect(landings(base, 'p0', 1, 'p04')).toBeGreaterThan(85);
+  });
+
+  it('R-901 GO luck never skips rent Ko Ko can pay near GO', () => {
+    const base = koKoGame();
+    own(base, 'p1', 'p21', 'p22');
+    build(base, 'p21', 5); // index 37, 6 steps from 31 (GO is 9 steps)
+    P(base, 'p0').cash = 100_000_000;
+    // Plain dice: a 6 is 5 rolls in 36 (~83 of 600).
+    expect(landings(base, 'p0', 31, 'p21')).toBeGreaterThan(65);
+  });
+
+  it('R-901 leaving Jail on doubles never lands Ko Ko on rent he cannot pay', () => {
+    const base = koKoGame();
+    own(base, 'p1', 'p06', 'p07', 'p08');
+    build(base, 'p08', 5); // index 14 = Jail + 4 (double 2)
+    P(base, 'p0').cash = 1000;
+    P(base, 'p0').inJail = true;
+    expect(landings(base, 'p0', idx(base, 'jail'), 'p08', 300)).toBe(0);
   });
 
   it('R-901 Thae Thae Lay drifts onto Ko Ko properties from round 6; other names roll plain dice', () => {
